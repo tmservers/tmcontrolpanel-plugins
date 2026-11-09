@@ -217,22 +217,11 @@ Void updateRoundRow(Integer index, Round round, Integer checkpointGap, Text mode
   (roundFrame.Controls[7] as CMlLabel).SetText(getTimeDiffText(round, checkpointGap));
   roundFrame.DataAttributeSet("login", round.login);
 
+  // Teams mode only tints the rank quad with the team color
   if (round.team.mainColor != "") {
     (roundFrame.Controls[0] as CMlQuad).BgColor = CL::Hex3ToRgb(round.team.mainColor);
-    (roundFrame.Controls[1] as CMlQuad).BgColor = CL::Hex3ToRgb(round.team.secondaryColor);
-    (roundFrame.Controls[2] as CMlQuad).BgColor = CL::Hex3ToRgb(round.team.mainColor);
-    (roundFrame.Controls[4] as CMlQuad).BgColor = CL::Hex3ToRgb(round.team.secondaryColor);
-    (roundFrame.Controls[5] as CMlLabel).TextColor = CL::Hex3ToRgb(round.team.textColor);
-    (roundFrame.Controls[6] as CMlLabel).TextColor = CL::Hex3ToRgb(round.team.textColor);
-    (roundFrame.Controls[7] as CMlLabel).TextColor = CL::Hex3ToRgb(round.team.textColor);
   } else {
     (roundFrame.Controls[0] as CMlQuad).BgColor = CL::Hex3ToRgb("{{ @theme.quad.background }}");
-    (roundFrame.Controls[1] as CMlQuad).BgColor = CL::Hex3ToRgb("{{ @theme.quad.foreground }}");
-    (roundFrame.Controls[2] as CMlQuad).BgColor = CL::Hex3ToRgb("BBB");
-    (roundFrame.Controls[4] as CMlQuad).BgColor = CL::Hex3ToRgb("{{ @theme.quad.foreground }}");
-    (roundFrame.Controls[5] as CMlLabel).TextColor = CL::Hex3ToRgb("{{ @theme.label.background }}");
-    (roundFrame.Controls[6] as CMlLabel).TextColor = CL::Hex3ToRgb("{{ @theme.label.background }}");
-    (roundFrame.Controls[7] as CMlLabel).TextColor = CL::Hex3ToRgb("{{ @theme.label.background }}");
   }
 
   roundFrame.Show();

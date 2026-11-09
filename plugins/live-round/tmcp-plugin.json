@@ -1,7 +1,7 @@
 {
   "slug": "live-round",
   "name": "Live Round",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "sdk": 4,
   "description": "A widget that shows live timings of players during a round.",
   "author": "TMControlPanel",

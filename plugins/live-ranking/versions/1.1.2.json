@@ -1,0 +1,6 @@
+{
+  "url": "live-ranking-1.1.2.zip",
+  "sha256": "f509f0820659f100e55079ad76e3f5a4ceca0003c489935ec660e55678226249",
+  "publishedAt": "2026-11-09T22:51:21.208Z",
+  "changelog": "In teams mode only the rank quad shows the team color; the rest of the row keeps the theme colors."
+}
