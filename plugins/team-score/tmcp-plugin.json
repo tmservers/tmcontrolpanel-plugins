@@ -1,0 +1,133 @@
+{
+  "slug": "team-score",
+  "name": "Team Score",
+  "version": "1.0.0",
+  "sdk": 4,
+  "description": "A head-to-head scoreboard for teams mode that highlights the team leading the round, with custom team names, colors and logos, and automatic team placement for configured players.",
+  "author": "TMControlPanel",
+  "license": "MIT",
+  "repository": "https://github.com/MRegterschot/tmcontrolpanel-plugins",
+  "gamemodes": [
+    "teams"
+  ],
+  "capabilities": [
+    "ui",
+    "players:moderate"
+  ],
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "teams": {
+        "type": "array",
+        "title": "Custom Teams",
+        "description": "Optional. Players of a custom team are moved to its side when they join, and the widget shows its name, color and logo.",
+        "items": {
+          "type": "object",
+          "title": "Team",
+          "properties": {
+            "name": {
+              "type": "string",
+              "title": "Team Name",
+              "minLength": 1,
+              "maxLength": 40
+            },
+            "color": {
+              "type": "string",
+              "title": "Color",
+              "description": "Hex color without #, like 222. Empty uses the in-game team color.",
+              "default": "",
+              "maxLength": 6
+            },
+            "logo": {
+              "type": "string",
+              "title": "Logo URL",
+              "description": "Square image (PNG, JPG or DDS) shown next to the team name.",
+              "default": "",
+              "maxLength": 500
+            },
+            "side": {
+              "type": "string",
+              "title": "Side",
+              "description": "auto takes the first free side when one of its players joins.",
+              "enum": [
+                "auto",
+                "blue",
+                "red"
+              ],
+              "default": "auto"
+            },
+            "players": {
+              "type": "array",
+              "title": "Players",
+              "items": {
+                "type": "string",
+                "widget": "user",
+                "minLength": 1
+              },
+              "default": [],
+              "addLabel": "Add Player"
+            }
+          },
+          "required": [
+            "name",
+            "players"
+          ]
+        },
+        "default": [],
+        "addLabel": "Add Team",
+        "csv": {
+          "columns": {
+            "name": "Team",
+            "color": "Color",
+            "logo": "Logo"
+          },
+          "lists": {
+            "players": [
+              "Player Login 1",
+              "Player Login 2",
+              "Player Login 3",
+              "Player Login 4",
+              "Player Login 5"
+            ]
+          }
+        }
+      },
+      "autoAssign": {
+        "type": "boolean",
+        "title": "Move players to their team",
+        "description": "Put players of a custom team on its side when they join.",
+        "default": true
+      },
+      "showWidget": {
+        "type": "boolean",
+        "title": "Show the widget",
+        "default": true
+      },
+      "centerLogo": {
+        "type": "string",
+        "title": "Center Logo URL",
+        "description": "Image (PNG, JPG or DDS) shown between the scores instead of \"vs\". Empty shows \"vs\".",
+        "default": "",
+        "maxLength": 500
+      }
+    },
+    "tabs": [
+      {
+        "id": "teams",
+        "title": "Teams",
+        "properties": [
+          "teams",
+          "autoAssign"
+        ]
+      },
+      {
+        "id": "widget",
+        "title": "Widget",
+        "properties": [
+          "showWidget",
+          "centerLogo"
+        ]
+      }
+    ]
+  }
+}

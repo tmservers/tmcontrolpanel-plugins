@@ -3895,6 +3895,309 @@ main(){
 "
 `;
 
+exports[`TemplateRenderer > renders widgets/team-score/team-score 1`] = `
+"<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<?xml-model href="https://raw.githubusercontent.com/reaby/manialink-xsd/main/manialink_v3.xsd" ?>
+<manialink name="TMCP:test-id" id="test-id" version="3">
+<frame id="widget" pos="1 2" z-index="10" hidden="1">
+<frame id="team-score" pos="0 0">
+  <quad id="stripe-0" pos="0 0" z-index="0" size="10 10" bgcolor="222"/>
+  <quad pos="10 0" z-index="0" size="30 10" bgcolor="DDD"/>
+  <quad id="logo-0" pos="1 -1" z-index="1" size="8 8" keepratio="Fit" hidden="1"/>
+  <label id="name-0" pos="12 -4.75" z-index="1" size="25.5 10" text="" textcolor="222" textsize="1.75" textfont="GameFontSemiBold" valign="center" maxline="2"/>
+  <quad id="bar-bg-0" pos="10 -9.25" z-index="1" size="30 0.75" bgcolor="CCC" hidden="1"/>
+  <quad id="bar-0" pos="40 -9.25" z-index="2" size="0 0.75" bgcolor="222" hidden="1"/>
+
+  <quad id="score-bg-0" pos="40 0" z-index="0" size="12 10" bgcolor="222"/>
+  <label id="score-0" pos="46 -4.6" z-index="1" size="12 10" text="0" halign="center" valign="center" textsize="3" textcolor="DDD" textfont="GameFontBlack"/>
+  <quad pos="52 0" z-index="0" size="10 10" bgcolor="333"/>
+  <label id="versus" pos="57 -4.75" z-index="1" size="10 10" text="vs" halign="center" valign="center" textsize="2.5" textcolor="CCC" textfont="GameFontBlack"/>
+  <quad id="center-logo" pos="53 -1" z-index="1" size="8 8" keepratio="Fit" hidden="1"/>
+  <quad id="leader-bar" pos="40 -9" z-index="2" size="12 1" bgcolor="DDD" hidden="1"/>
+  <quad id="score-bg-1" pos="62 0" z-index="0" size="12 10" bgcolor="222"/>
+  <label id="score-1" pos="68 -4.6" z-index="1" size="12 10" text="0" halign="center" valign="center" textsize="3" textcolor="DDD" textfont="GameFontBlack"/>
+
+  <quad pos="74 0" z-index="0" size="30 10" bgcolor="DDD"/>
+  <quad id="logo-1" pos="105 -1" z-index="1" size="8 8" keepratio="Fit" hidden="1"/>
+  <label id="name-1" pos="102 -4.75" z-index="1" size="25.5 10" text="" halign="right" textcolor="222" textsize="1.75" textfont="GameFontSemiBold" valign="center" maxline="2"/>
+  <quad id="bar-bg-1" pos="74 -9.25" z-index="1" size="30 0.75" bgcolor="CCC" hidden="1"/>
+  <quad id="bar-1" pos="74 -9.25" z-index="2" size="0 0.75" bgcolor="222" hidden="1"/>
+  <quad id="stripe-1" pos="104 0" z-index="0" size="10 10" bgcolor="222"/>
+
+  <quad id="status-bg" pos="37 -10.25" z-index="0" size="40 4" bgcolor="222" hidden="1"/>
+  <label id="status" pos="57 -11.9" z-index="1" size="38 4" text="" halign="center" valign="center" textsize="0.9" textcolor="CCC" textfont="GameFontSemiBold"/>
+</frame>
+
+</frame>
+
+<script><!--
+#Include "MathLib" as ML
+#Include "TextLib" as TL
+#Include "TimeLib" as TimeLib
+#Include "ColorLib" as CL
+
+#Struct K_TeamView {
+  Text name;
+  Text color;
+  Text logo;
+  Integer points;
+  Integer roundPoints;
+}
+
+#Struct K_TeamScoreState {
+  K_TeamView[] teams;
+  Integer leader;
+  Integer pointsLimit;
+  Text status;
+  Text centerLogo;
+}
+
+
+declare CMlFrame widget;
+--></script>
+
+<script><!--
+declare Vec2 widgetBasePosition;
+declare CMlFrame HS_Target;
+declare Boolean HS_Hidden;
+
+Void hs_hide(Integer duration) {
+  HS_Hidden = True;
+  declare Real x;
+  if (widgetBasePosition[0] < 0.0) {
+    x = (HS_Target.Size[0] * -HS_Target.RelativeScale) - 322.0;
+  } else {
+    x = 322.0;
+  }
+  AnimMgr.Add(HS_Target, "<frame pos='" ^ x ^ " " ^ widgetBasePosition[1] ^ "' />", duration, CAnimManager::EAnimManagerEasing::ExpInOut);
+}
+
+Void hs_show(Integer duration) {
+  HS_Hidden = False;
+  AnimMgr.Add(HS_Target, "<frame pos='" ^ widgetBasePosition[0] ^ " " ^ widgetBasePosition[1] ^ "' />", duration, CAnimManager::EAnimManagerEasing::CircOut);
+}
+
+Void hidescript() {
+  if (HS_Target == Null){
+    HS_Target <=> (Page.MainFrame.GetFirstChild("widget") as CMlFrame);
+  }
+
+  declare hideSpeed = 10;
+
+  if (InputPlayer == Null) {
+    if (HS_Hidden) {
+      hs_show(600);
+    }
+    return;
+  }
+
+  declare Boolean overHidespeed = ML::Abs(InputPlayer.Speed * 3.6) > hideSpeed;
+
+  if (overHidespeed && !HS_Hidden) {
+    hs_hide(1000);
+
+    while(InputPlayer.Speed * 3.6 > hideSpeed){
+      yield;
+      hidescript();
+    }
+  }
+  
+  if (!overHidespeed && HS_Hidden) {
+    sleep(1000);
+    hs_show(600);
+  }
+}
+--></script>
+<script><!--
+Integer HexDigit(Text char) {
+  declare Text digits = "0123456789ABCDEF";
+  for (i, 0, 15) {
+    if (TL::SubText(digits, i, 1) == char) return i;
+  }
+  return 0;
+}
+
+Real HexChannel(Text hex, Integer at, Integer width) {
+  declare Integer value = HexDigit(TL::SubText(hex, at, 1));
+  if (width == 1) return ML::ToReal(value * 17) / 255.;
+  return ML::ToReal(value * 16 + HexDigit(TL::SubText(hex, at + 1, 1))) / 255.;
+}
+
+// Configured hex color, else the in-game team color
+Vec3 TeamColor(Text hex, Integer side) {
+  declare Text upper = TL::ToUpperCase(hex);
+  if (TL::Length(upper) == 3) {
+    return <HexChannel(upper, 0, 1), HexChannel(upper, 1, 1), HexChannel(upper, 2, 1)>;
+  }
+  if (TL::Length(upper) == 6) {
+    return <HexChannel(upper, 0, 2), HexChannel(upper, 2, 2), HexChannel(upper, 4, 2)>;
+  }
+  if (Teams.count > side) return Teams[side].ColorPrimary;
+  if (side == 0) return <0., 0., 1.>;
+  return <1., 0., 0.>;
+}
+
+// Breaks a name that doesn't fit into two lines at the last word that still fits
+Text WrapName(CMlLabel label, Text name, Real maxWidth) {
+  if (label.ComputeWidth(name) <= maxWidth) return name;
+  declare Text first = "";
+  declare Text second = "";
+  foreach (word in TL::Split(" ", name)) {
+    if (second == "") {
+      declare Text candidate = word;
+      if (first != "") candidate = first ^ " " ^ word;
+      if (first == "" || label.ComputeWidth(candidate) <= maxWidth) {
+        first = candidate;
+        continue;
+      }
+      second = word;
+    } else {
+      second = second ^ " " ^ word;
+    }
+  }
+  if (second == "") return first;
+  return first ^ "\\n" ^ second;
+}
+
+Void UpdateSide(CMlFrame frame, K_TeamView team, Integer side, Integer leader, Integer pointsLimit) {
+  declare Vec3 color = TeamColor(team.color, side);
+  declare Text suffix = "-" ^ side;
+
+  (frame.GetFirstChild("stripe" ^ suffix) as CMlQuad).BgColor = color;
+  (frame.GetFirstChild("score" ^ suffix) as CMlLabel).SetText(TL::ToText(team.points));
+
+
+  declare nameLabel <=> (frame.GetFirstChild("name" ^ suffix) as CMlLabel);
+  nameLabel.SetText(WrapName(nameLabel, team.name, nameLabel.Size.X));
+  // The logo covers the team color square on the outer end
+  declare logo <=> (frame.GetFirstChild("logo" ^ suffix) as CMlQuad);
+  if (team.logo != "") {
+    logo.ImageUrl = team.logo;
+    logo.Show();
+  } else {
+    logo.Hide();
+  }
+
+  // Progress toward the points limit, filling toward the centre
+  declare barBg <=> (frame.GetFirstChild("bar-bg" ^ suffix) as CMlQuad);
+  declare bar <=> (frame.GetFirstChild("bar" ^ suffix) as CMlQuad);
+  if (pointsLimit <= 0) {
+    barBg.Hide();
+    bar.Hide();
+    return;
+  }
+  barBg.Show();
+  bar.Show();
+  bar.BgColor = color;
+  declare Real width = 30. * ML::Min(ML::ToReal(team.points) / ML::ToReal(pointsLimit), 1.);
+  declare Real x = 74.;
+  if (side == 0) x = 40. - width;
+  AnimMgr.Add(bar, "<quad pos='" ^ x ^ " -9.25' size='" ^ width ^ " 0.75' />", 400, CAnimManager::EAnimManagerEasing::ExpInOut);
+}
+
+Void UpdateScoreboard(Text json) {
+  declare K_TeamScoreState state;
+  if (!state.fromjson(json) || state.teams.count < 2) return;
+
+  declare frame <=> (Page.MainFrame.GetFirstChild("team-score") as CMlFrame);
+  UpdateSide(frame, state.teams[0], 0, state.leader, state.pointsLimit);
+  UpdateSide(frame, state.teams[1], 1, state.leader, state.pointsLimit);
+
+  // A bar under the round leader's score, sliding over when the lead changes
+  declare leaderBar <=> (frame.GetFirstChild("leader-bar") as CMlQuad);
+  if (state.leader == 0 || state.leader == 1) {
+    declare Real barX = 40.;
+    if (state.leader == 1) barX = 62.;
+    if (!leaderBar.Visible) {
+      leaderBar.RelativePosition_V3.X = barX;
+      leaderBar.Show();
+    }
+    AnimMgr.Add(leaderBar, "<quad pos='" ^ barX ^ " -9' />", 300, CAnimManager::EAnimManagerEasing::QuadInOut);
+  } else {
+    leaderBar.Hide();
+  }
+
+  // A center logo replaces the "vs" text
+  declare centerLogo <=> (frame.GetFirstChild("center-logo") as CMlQuad);
+  declare versus <=> (frame.GetFirstChild("versus") as CMlLabel);
+  if (state.centerLogo != "") {
+    centerLogo.ImageUrl = state.centerLogo;
+    centerLogo.Show();
+    versus.Hide();
+  } else {
+    centerLogo.Hide();
+    versus.Show();
+  }
+
+  (frame.GetFirstChild("status") as CMlLabel).SetText(state.status);
+  declare statusBg <=> (frame.GetFirstChild("status-bg") as CMlQuad);
+  statusBg.Visible = state.status != "";
+}
+
+--></script>
+
+<script><!--
+main() {
+  widget <=> (Page.MainFrame.GetFirstChild("widget") as CMlFrame);
+  widgetBasePosition = widget.AbsolutePosition_V3;
+
+  sleep(300);
+  widget.Show();
+
+  declare Text TeamScoreJson for This = """{}""";
+declare Integer LastTeamScoreUpdate for This = -1;
+declare Integer lastUpdate = LastTeamScoreUpdate;
+declare Integer lastRefresh = Now;
+UpdateScoreboard(TeamScoreJson);
+
+
+  while (True) {
+    yield;
+
+    foreach(event in PendingEvents){
+      if(event.Control == Null) continue;
+
+      
+    }
+
+    // Also refresh every few seconds: the in-game team colors can change without new data
+if (LastTeamScoreUpdate != lastUpdate || Now - lastRefresh > 5000) {
+  lastUpdate = LastTeamScoreUpdate;
+  lastRefresh = Now;
+  UpdateScoreboard(TeamScoreJson);
+}
+
+
+      hidescript();
+  }
+}
+
+--></script>
+
+</manialink>
+"
+`;
+
+exports[`TemplateRenderer > renders widgets/team-score/team-score-update 1`] = `
+"<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<?xml-model href="https://raw.githubusercontent.com/reaby/manialink-xsd/main/manialink_v3.xsd" ?>
+<manialink name="TMCP:test-id" id="test-id" version="3">
+<script>
+<!--
+main(){
+  declare Text stateJson = """{}""";
+  declare Text TeamScoreJson for This;
+  declare Integer LastTeamScoreUpdate for This;
+  TeamScoreJson = stateJson;
+  LastTeamScoreUpdate = GameTime;
+}
+-->
+</script>
+
+</manialink>
+"
+`;
+
 exports[`TemplateRenderer > renders window 1`] = `
 "<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <?xml-model href="https://raw.githubusercontent.com/reaby/manialink-xsd/main/manialink_v3.xsd" ?>
