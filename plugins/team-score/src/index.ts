@@ -41,6 +41,7 @@ export interface WidgetState {
   leader: -1 | Side;
   pointsLimit: number;
   status: string;
+  warmUp: boolean;
   // Shown between the scores instead of "vs" when set
   centerLogo: string;
 }
@@ -337,6 +338,7 @@ class TeamScorePlugin {
       pointsLimit: Math.max(pointsLimit, 0),
       centerLogo: this.ctx.config().centerLogo?.trim() ?? "",
       status,
+      warmUp: live.liveInfo.isWarmUp,
     };
   }
 

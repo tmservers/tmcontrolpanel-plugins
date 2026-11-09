@@ -43,6 +43,7 @@
   Integer leader;
   Integer pointsLimit;
   Text status;
+  Boolean warmUp;
   Text centerLogo;
 }
 {{/content}}
@@ -168,9 +169,18 @@ Void UpdateScoreboard(Text json) {
     versus.Show();
   }
 
-  (frame.GetFirstChild("status") as CMlLabel).SetText(state.status);
+  declare statusLabel <=> (frame.GetFirstChild("status") as CMlLabel);
   declare statusBg <=> (frame.GetFirstChild("status-bg") as CMlQuad);
+  statusLabel.SetText(state.status);
   statusBg.Visible = state.status != "";
+  // Orange during warm-up so it reads as "not counting yet"
+  if (state.warmUp) {
+    statusBg.BgColor = CL::Hex3ToRgb("F80");
+    statusLabel.TextColor = CL::Hex3ToRgb("{{ @theme.label.background }}");
+  } else {
+    statusBg.BgColor = CL::Hex3ToRgb("{{ @theme.quad.background }}");
+    statusLabel.TextColor = CL::Hex3ToRgb("{{ @theme.label.foregroundMuted }}");
+  }
 }
 {{/content}}
 

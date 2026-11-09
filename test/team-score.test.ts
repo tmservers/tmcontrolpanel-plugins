@@ -184,6 +184,20 @@ describe("team-score plugin", () => {
     expect(view(withLogo).centerLogo).toBe("https://example.com/vs.png");
   });
 
+  it("flags warm-up so the status strip can turn orange", async () => {
+    const h = await withPackage();
+    await h.clock.advance(300);
+    expect(view(h).warmUp).toBe(false);
+
+    await h.script("Trackmania.WarmUp.Start");
+    await h.clock.advance(300);
+    expect(view(h)).toMatchObject({ warmUp: true, status: "Warm up" });
+
+    await h.script("Trackmania.WarmUp.End");
+    await h.clock.advance(300);
+    expect(view(h).warmUp).toBe(false);
+  });
+
   it("re-projects the round leader on every checkpoint", async () => {
     const h = await withPackage([], [player("p1", { TeamId: 0 }), player("p2", { TeamId: 1 })]);
     await h.script("Trackmania.Event.WayPoint", passed("p1", 0, 1000));

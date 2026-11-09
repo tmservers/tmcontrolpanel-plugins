@@ -3949,6 +3949,7 @@ exports[`TemplateRenderer > renders widgets/team-score/team-score 1`] = `
   Integer leader;
   Integer pointsLimit;
   Text status;
+  Boolean warmUp;
   Text centerLogo;
 }
 
@@ -4129,9 +4130,18 @@ Void UpdateScoreboard(Text json) {
     versus.Show();
   }
 
-  (frame.GetFirstChild("status") as CMlLabel).SetText(state.status);
+  declare statusLabel <=> (frame.GetFirstChild("status") as CMlLabel);
   declare statusBg <=> (frame.GetFirstChild("status-bg") as CMlQuad);
+  statusLabel.SetText(state.status);
   statusBg.Visible = state.status != "";
+  // Orange during warm-up so it reads as "not counting yet"
+  if (state.warmUp) {
+    statusBg.BgColor = CL::Hex3ToRgb("F80");
+    statusLabel.TextColor = CL::Hex3ToRgb("222");
+  } else {
+    statusBg.BgColor = CL::Hex3ToRgb("222");
+    statusLabel.TextColor = CL::Hex3ToRgb("CCC");
+  }
 }
 
 --></script>
