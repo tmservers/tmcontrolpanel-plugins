@@ -1,0 +1,6 @@
+{
+  "url": "live-round-1.2.2.zip",
+  "sha256": "7091cf1aafa9b55c6e80a18333f58796fa7e74f8ba07a8bcfb3b1fe7716316bd",
+  "publishedAt": "2026-11-09T22:51:21.223Z",
+  "changelog": "In teams mode only the rank quad shows the team color; the rest of the row keeps the theme colors."
+}

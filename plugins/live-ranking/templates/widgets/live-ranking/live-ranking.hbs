@@ -76,18 +76,11 @@ Void updateRankingRow(Integer index, Ranking ranking, Text mode, Integer pointsL
   (rankingFrame.Controls[5] as CMlLabel).SetText(pointsText);
   rankingFrame.DataAttributeSet("login", ranking.login);
 
+  // Teams mode only tints the rank quad with the team color
   if (ranking.team.mainColor != "") {
     (rankingFrame.Controls[0] as CMlQuad).BgColor = CL::Hex3ToRgb(ranking.team.mainColor);
-    (rankingFrame.Controls[1] as CMlQuad).BgColor = CL::Hex3ToRgb(ranking.team.secondaryColor);
-    (rankingFrame.Controls[3] as CMlQuad).BgColor = CL::Hex3ToRgb(ranking.team.secondaryColor);
-    (rankingFrame.Controls[4] as CMlLabel).TextColor = CL::Hex3ToRgb(ranking.team.textColor);
-    (rankingFrame.Controls[5] as CMlLabel).TextColor = CL::Hex3ToRgb(ranking.team.textColor);
   } else {
     (rankingFrame.Controls[0] as CMlQuad).BgColor = CL::Hex3ToRgb("{{ @theme.quad.background }}");
-    (rankingFrame.Controls[1] as CMlQuad).BgColor = CL::Hex3ToRgb("{{ @theme.quad.foreground }}");
-    (rankingFrame.Controls[3] as CMlQuad).BgColor = CL::Hex3ToRgb("{{ @theme.quad.foreground }}");
-    (rankingFrame.Controls[4] as CMlLabel).TextColor = CL::Hex3ToRgb("{{ @theme.label.background }}");
-    (rankingFrame.Controls[5] as CMlLabel).TextColor = CL::Hex3ToRgb("{{ @theme.label.background }}");
   }
 
   rankingFrame.Show();
