@@ -4,6 +4,11 @@ Manages a match on the server: starting and stopping it, pausing, a pick and ban
 
 A first-party TMControlPanel plugin. Permissions: `ui`, `chat:send`, `maps:read`, `maps:write`, `mode:control`.
 
+The settings form can import a Trackmania Events event after an admin connects
+their Trackmania Events account in the panel. It imports teams and player
+seeding, maps matched by UID against maps already on the server, and the pick
+and ban order.
+
 ## Events
 
 Other plugins listen with `ctx.on("match:<event>", (payload) => ...)`. Panels without plugin events ignore them.
