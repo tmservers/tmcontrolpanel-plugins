@@ -390,6 +390,16 @@ main() {
 "
 `;
 
+exports[`TemplateRenderer > renders components/table 1`] = `
+"<frame pos="0 0" size="116 63">
+  <quad pos="0 0" size="116 4" bgcolor="222" />
+
+  <label pos="58 -8" size="116 4" text="No players checked yet" halign="center" valign="center2" textsize="1" textfont="GameFontRegular" textcolor="222" opacity="0.6" />
+
+  </frame>
+"
+`;
+
 exports[`TemplateRenderer > renders manialink 1`] = `
 "<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <?xml-model href="https://raw.githubusercontent.com/reaby/manialink-xsd/main/manialink_v3.xsd" ?>
@@ -538,6 +548,126 @@ main() {
   widget.Show();
 
   
+
+  while (True) {
+    yield;
+
+    foreach(event in PendingEvents){
+      if(event.Control == Null) continue;
+
+      
+    }
+
+    
+
+      hidescript();
+  }
+}
+
+--></script>
+
+</manialink>
+"
+`;
+
+exports[`TemplateRenderer > renders widgets/detector 1`] = `
+"<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<?xml-model href="https://raw.githubusercontent.com/reaby/manialink-xsd/main/manialink_v3.xsd" ?>
+<manialink name="TMCP:test-id" id="test-id" version="3">
+<frame id="widget" pos="1 2" z-index="10" hidden="1">
+
+</frame>
+
+<script><!--
+#Include "MathLib" as ML
+#Include "TextLib" as TL
+#Include "TimeLib" as TimeLib
+#Include "ColorLib" as CL
+
+declare Text OPLastInfo;
+declare Integer OPLastCheck;
+
+
+declare CMlFrame widget;
+--></script>
+
+<script><!--
+declare Vec2 widgetBasePosition;
+declare CMlFrame HS_Target;
+declare Boolean HS_Hidden;
+
+Void hs_hide(Integer duration) {
+  HS_Hidden = True;
+  declare Real x;
+  if (widgetBasePosition[0] < 0.0) {
+    x = (HS_Target.Size[0] * -HS_Target.RelativeScale) - 322.0;
+  } else {
+    x = 322.0;
+  }
+  AnimMgr.Add(HS_Target, "<frame pos='" ^ x ^ " " ^ widgetBasePosition[1] ^ "' />", duration, CAnimManager::EAnimManagerEasing::ExpInOut);
+}
+
+Void hs_show(Integer duration) {
+  HS_Hidden = False;
+  AnimMgr.Add(HS_Target, "<frame pos='" ^ widgetBasePosition[0] ^ " " ^ widgetBasePosition[1] ^ "' />", duration, CAnimManager::EAnimManagerEasing::CircOut);
+}
+
+Void hidescript() {
+  if (HS_Target == Null){
+    HS_Target <=> (Page.MainFrame.GetFirstChild("widget") as CMlFrame);
+  }
+
+  declare hideSpeed = 10;
+
+  if (InputPlayer == Null) {
+    if (HS_Hidden) {
+      hs_show(600);
+    }
+    return;
+  }
+
+  declare Boolean overHidespeed = ML::Abs(InputPlayer.Speed * 3.6) > hideSpeed;
+
+  if (overHidespeed && !HS_Hidden) {
+    hs_hide(1000);
+
+    while(InputPlayer.Speed * 3.6 > hideSpeed){
+      yield;
+      hidescript();
+    }
+  }
+  
+  if (!overHidespeed && HS_Hidden) {
+    sleep(1000);
+    hs_show(600);
+  }
+}
+--></script>
+<script><!--
+// Reports System.ExtraTool_Info, which holds the Openplanet version and signature mode
+Void OPCheck() {
+  declare Text Info = System.ExtraTool_Info;
+  if (Info == "") {
+    TriggerPageAction("check");
+  } else {
+    TriggerPageAction("check-" ^ TL::URLEncode(Info));
+  }
+}
+
+--></script>
+
+<script><!--
+main() {
+  widget <=> (Page.MainFrame.GetFirstChild("widget") as CMlFrame);
+  widgetBasePosition = widget.AbsolutePosition_V3;
+
+  sleep(300);
+  widget.Show();
+
+  OPLastInfo = System.ExtraTool_Info;
+OPLastCheck = Now;
+OPCheck();
+
 
   while (True) {
     yield;
@@ -4481,6 +4611,56 @@ main(){
 "
 `;
 
+exports[`TemplateRenderer > renders windows/help 1`] = `
+"<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<?xml-model href="https://raw.githubusercontent.com/reaby/manialink-xsd/main/manialink_v3.xsd" ?>
+<manialink name="TMCP:test-id" id="test-id" version="3">
+<frame id="window" pos="-25 20" size="50 45" z-index="20">
+  <quad pos="0 0" size="50 5" bgcolor="222" />
+  <label pos="1.5 -2.25" text="Title" size="40.5 5" valign="center" halign="left" textsize="1" color="DDD" textfont="GameFontSemiBold" />
+  <label pos="48.5 -2.25" text="" size="5 5" valign="center" halign="right" textsize="1" color="222" action="close-window-test-id" focusareacolor2="DDD0" />
+
+  <quad pos="0 -5" size="50 40" bgcolor="DDD" />
+  <frame pos="0 -5" size="50 40">
+    <label pos="25 -4" size="42 5" text="" halign="center" valign="center2" textsize="2" textfont="GameFontSemiBold" textcolor="222" />
+<label pos="25 -13" size="42 4" text="Any signature,Action: spectator" halign="center" valign="center2" textsize="0.9" textfont="GameFontRegular" textcolor="222" opacity="0.7" />
+
+
+
+  </frame>
+</frame>
+
+<script><!--
+#Include "MathLib" as ML
+#Include "TextLib" as TL
+#Include "TimeLib" as TimeLib
+#Include "ColorLib" as CL
+
+
+
+
+
+main() {
+  
+
+  while (True) {
+    yield;
+
+    foreach(event in PendingEvents){
+      if(event.Control == Null) continue;
+
+      
+    }
+
+    
+  }
+}
+--></script>
+
+</manialink>
+"
+`;
+
 exports[`TemplateRenderer > renders windows/match/choose-position-window 1`] = `
 "<?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <?xml-model href="https://raw.githubusercontent.com/reaby/manialink-xsd/main/manialink_v3.xsd" ?>
@@ -4504,6 +4684,93 @@ exports[`TemplateRenderer > renders windows/match/choose-position-window 1`] = `
       <label pos="5 -4.5" z-index="0" size="10 10" text="2" halign="center" valign="center" textsize="3" textcolor="DDD" textfont="GameFontBlack"/>
 
       <quad class="trigger" pos="0 0" z-index="-2" size="10 10" bgcolor="222" opacity="0" scriptevents="1" action="-2" />
+    </frame>
+</frame>
+
+  </frame>
+</frame>
+
+<script><!--
+#Include "MathLib" as ML
+#Include "TextLib" as TL
+#Include "TimeLib" as TimeLib
+#Include "ColorLib" as CL
+
+
+
+
+
+main() {
+  
+
+  while (True) {
+    yield;
+
+    foreach(event in PendingEvents){
+      if(event.Control == Null) continue;
+
+      
+    }
+
+    
+  }
+}
+--></script>
+
+</manialink>
+"
+`;
+
+exports[`TemplateRenderer > renders windows/signatures 1`] = `
+"<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<?xml-model href="https://raw.githubusercontent.com/reaby/manialink-xsd/main/manialink_v3.xsd" ?>
+<manialink name="TMCP:test-id" id="test-id" version="3">
+<frame id="window" pos="-25 20" size="50 45" z-index="20">
+  <quad pos="0 0" size="50 5" bgcolor="222" />
+  <label pos="1.5 -2.25" text="Title" size="40.5 5" valign="center" halign="left" textsize="1" color="DDD" textfont="GameFontSemiBold" />
+  <label pos="48.5 -2.25" text="" size="5 5" valign="center" halign="right" textsize="1" color="222" action="close-window-test-id" focusareacolor2="DDD0" />
+
+  <quad pos="0 -5" size="50 40" bgcolor="DDD" />
+  <frame pos="0 -5" size="50 40">
+    <frame pos="2 -2" size="116 71">
+  <frame pos="0 0" size="24 7">
+    <quad pos="0 0" size="24 7" bgcolor="CCC" />
+    <quad pos="0 0" size="0.6 7" bgcolor="222" />
+    <label pos="2.5 -2.2" size="20 3" text="Players" valign="center2" textsize="0.7" textfont="GameFontSemiBold" textcolor="222" opacity="0.7" />
+    <label pos="2.5 -5" size="20 4" text="1" valign="center2" textsize="1.6" textfont="GameFontSemiBold" textcolor="222" />
+  </frame>
+  <frame pos="26 0" size="24 7">
+    <quad pos="0 0" size="24 7" bgcolor="CCC" />
+    <quad pos="0 0" size="0.6 7" bgcolor="222" />
+    <label pos="2.5 -2.2" size="20 3" text="Openplanet" valign="center2" textsize="0.7" textfont="GameFontSemiBold" textcolor="222" opacity="0.7" />
+    <label pos="2.5 -5" size="20 4" text="1" valign="center2" textsize="1.6" textfont="GameFontSemiBold" textcolor="222" />
+  </frame>
+  <frame pos="52 0" size="24 7">
+    <quad pos="0 0" size="24 7" bgcolor="CCC" />
+    <quad pos="0 0" size="0.6 7" bgcolor="222" />
+    <label pos="2.5 -2.2" size="20 3" text="Violations" valign="center2" textsize="0.7" textfont="GameFontSemiBold" textcolor="222" opacity="0.7" />
+    <label pos="2.5 -5" size="20 4" text="0" valign="center2" textsize="1.6" textfont="GameFontSemiBold" textcolor="222" />
+  </frame>
+  <label pos="116 -2" size="38 3" text="Any signature" halign="right" valign="center2" textsize="0.7" textfont="GameFontRegular" textcolor="222" opacity="0.7" />
+  <label pos="116 -5" size="38 3" text="Action: spectator" halign="right" valign="center2" textsize="0.7" textfont="GameFontRegular" textcolor="222" opacity="0.7" />
+
+  <frame pos="0 -9" size="116 63">
+    <quad pos="0 0" size="116 4" bgcolor="222" />
+    <label pos="1 -2" size="36 4" text="Player" halign="left" valign="center2" textsize="0.9" textfont="GameFontSemiBold" textcolor="DDD" />
+    <label pos="44 -2" size="14 4" text="Openplanet" halign="center" valign="center2" textsize="0.9" textfont="GameFontSemiBold" textcolor="DDD" />
+    <label pos="63 -2" size="16 4" text="Version" halign="left" valign="center2" textsize="0.9" textfont="GameFontSemiBold" textcolor="DDD" />
+    <label pos="79 -2" size="18 4" text="Signature" halign="left" valign="center2" textsize="0.9" textfont="GameFontSemiBold" textcolor="DDD" />
+    <label pos="93 -2" size="22 4" text="Status" halign="left" valign="center2" textsize="0.9" textfont="GameFontSemiBold" textcolor="DDD" />
+  
+    <frame pos="0 -4" size="116 4">
+      
+      <label pos="1 -2" size="36 4" text="Nick" halign="left" valign="center2" textsize="0.9" textfont="GameFontRegular" textcolor="222" />
+      <label pos="44 -2" size="14 4" text="Yes" halign="center" valign="center2" textsize="0.9" textfont="GameFontRegular" textcolor="222" />
+      <label pos="63 -2" size="16 4" text="1.28.1" halign="left" valign="center2" textsize="0.9" textfont="GameFontRegular" textcolor="222" />
+      <label pos="79 -2" size="18 4" text="REGULAR" halign="left" valign="center2" textsize="0.9" textfont="GameFontRegular" textcolor="222" />
+      <label pos="93 -2" size="22 4" text="OK" halign="left" valign="center2" textsize="0.9" textfont="GameFontRegular" textcolor="0A4" />
+    </frame>
+  
     </frame>
 </frame>
 

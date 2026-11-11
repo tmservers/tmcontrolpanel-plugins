@@ -1,0 +1,114 @@
+{
+  "slug": "openplanet",
+  "name": "Openplanet Control",
+  "version": "1.0.0",
+  "sdk": 5,
+  "description": "Detects Openplanet and its signature mode, enforces which modes are allowed and shows admins what every player uses.",
+  "author": "TMControlPanel",
+  "license": "MIT",
+  "repository": "https://github.com/tmservers/tmcontrolpanel-plugins",
+  "commands": ["openplanet"],
+  "capabilities": ["ui", "chat:send", "players:moderate"],
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "allowOpenplanet": {
+        "type": "boolean",
+        "title": "Allow Openplanet",
+        "description": "When off, every player with Openplanet is treated as a violation.",
+        "default": true
+      },
+      "enforceSignatures": {
+        "type": "boolean",
+        "title": "Enforce signature modes",
+        "description": "Only allow the signature modes below.",
+        "default": false
+      },
+      "allowedSignatures": {
+        "type": "array",
+        "title": "Allowed signature modes",
+        "items": {
+          "type": "string",
+          "enum": ["OFFICIAL", "REGULAR", "SCHOOL", "DEVMODE", "COMPETITION"]
+        },
+        "default": ["OFFICIAL", "REGULAR", "COMPETITION"],
+        "maxItems": 5,
+        "addLabel": "Add signature mode",
+        "visibleWhen": { "property": "enforceSignatures", "equals": true }
+      },
+      "customSignatures": {
+        "type": "array",
+        "title": "Custom signature modes",
+        "description": "Competition profiles not in the list above, as shown in brackets in the tool info (for example TMWT).",
+        "items": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "default": [],
+        "maxItems": 20,
+        "addLabel": "Add custom signature",
+        "visibleWhen": { "property": "enforceSignatures", "equals": true }
+      },
+      "minimumVersion": {
+        "type": "string",
+        "title": "Minimum Openplanet version",
+        "description": "For example 1.27.0. Leave empty to allow any version.",
+        "default": "",
+        "maxLength": 20
+      },
+      "enforcement": {
+        "type": "string",
+        "title": "Action on a violation",
+        "description": "Warn only sends a chat message. Spectator forces the player to spectate until they fix it. Kick also kicks them after the delay.",
+        "enum": ["warn", "spectator", "kick"],
+        "default": "spectator"
+      },
+      "kickDelay": {
+        "type": "integer",
+        "title": "Kick delay (seconds)",
+        "default": 30,
+        "minimum": 5,
+        "maximum": 600,
+        "visibleWhen": { "property": "enforcement", "equals": "kick" }
+      },
+      "exemptAdmins": {
+        "type": "boolean",
+        "title": "Exempt panel admins",
+        "description": "Server admins are never forced to spectate or kicked.",
+        "default": true
+      },
+      "checkInterval": {
+        "type": "integer",
+        "title": "Recheck interval (seconds)",
+        "description": "How often clients look for a changed signature mode while playing. 0 checks only when joining.",
+        "default": 5,
+        "minimum": 0,
+        "maximum": 300
+      }
+    },
+    "tabs": [
+      {
+        "id": "rules",
+        "title": "Rules",
+        "properties": [
+          "allowOpenplanet",
+          "enforceSignatures",
+          "allowedSignatures",
+          "customSignatures",
+          "minimumVersion"
+        ]
+      },
+      {
+        "id": "enforcement",
+        "title": "Enforcement",
+        "properties": [
+          "enforcement",
+          "kickDelay",
+          "exemptAdmins",
+          "checkInterval"
+        ]
+      }
+    ]
+  },
+  "helpText": "Checks every player's Openplanet signature mode.\nCommands:\n/openplanet - (admins) show the signature modes players use"
+}
