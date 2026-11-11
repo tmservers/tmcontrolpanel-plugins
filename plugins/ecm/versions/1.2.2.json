@@ -1,0 +1,6 @@
+{
+  "url": "ecm-1.2.2.zip",
+  "sha256": "fe7417a426796787969c2a780368e9d8d487efeef0a50ebdccd89cf4d4abdf9f",
+  "publishedAt": "2026-11-11T21:35:22.623Z",
+  "changelog": "Failed eCircuitMania requests are reported to the panel's Sentry, without the match id or token. Needs plugin SDK 5."
+}
