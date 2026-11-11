@@ -462,6 +462,30 @@ describe("ecm", () => {
     ]);
   });
 
+  it("reports failed eCircuitMania requests to Sentry without the key", async () => {
+    const reports: { error: unknown; context: { tags: Record<string, string>; extra?: Record<string, unknown> } }[] = [];
+    const h = await withPackage("ecm", {
+      players: [player("p1")],
+      config: { apiKey: "m_secret", isRecording: true },
+      errors: { captureException: (error, context) => reports.push({ error, context }) },
+    });
+    h.http.response = { status: 500, headers: {}, body: "boom" };
+    await h.script("Trackmania.Event.WayPoint", finish("p1", 30000));
+    h.http.fetch = async () => {
+      throw new Error("timeout");
+    };
+    await h.script("Trackmania.Event.WayPoint", finish("p1", 31000));
+
+    expect(reports.map((r) => (r.error as Error).message)).toEqual([
+      "eCircuitMania match-addRoundTime returned 500",
+      "timeout",
+    ]);
+    expect(reports[0].context.extra).toEqual({ endpoint: "match-addRoundTime", status: 500, body: "boom" });
+    expect(reports[1].context.extra).toEqual({ endpoint: "match-addRoundTime" });
+    expect(reports[0].context.tags).toMatchObject({ plugin: "ecm", source: "plugin" });
+    expect(JSON.stringify(reports)).not.toContain("secret");
+  });
+
   it("lets editors toggle recording and save the key from the in-game window", async () => {
     const h = await withPackage("ecm", {
       players: [player("editor"), player("viewer")],
