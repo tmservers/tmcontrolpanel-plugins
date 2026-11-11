@@ -1,0 +1,19 @@
+{{#extend "window"}}
+{{#content "window"}}
+<frame pos="2 -2" size="116 71">
+  {{#each data.stats}}
+  <frame pos="{{ multiply @index 26 }} 0" size="24 7">
+    <quad pos="0 0" size="24 7" bgcolor="{{ @theme.quad.foregroundMuted }}" />
+    <quad pos="0 0" size="0.6 7" bgcolor="{{#if alert}}F00{{else}}{{ @theme.quad.background }}{{/if}}" />
+    <label pos="2.5 -2.2" size="20 3" text="{{ label }}" valign="center2" textsize="0.7" textfont="GameFontSemiBold" textcolor="{{ @theme.label.background }}" opacity="0.7" />
+    <label pos="2.5 -5" size="20 4" text="{{ value }}" valign="center2" textsize="1.6" textfont="GameFontSemiBold" textcolor="{{#if alert}}F00{{else}}{{ @theme.label.background }}{{/if}}" />
+  </frame>
+  {{/each}}
+  {{#each data.rules}}
+  <label pos="116 {{ subtract -2 (multiply @index 3) }}" size="38 3" text="{{ this }}" halign="right" valign="center2" textsize="0.7" textfont="GameFontRegular" textcolor="{{ @theme.label.background }}" opacity="0.7" />
+  {{/each}}
+
+  {{> components/table table=data.table pos="0 -9" prev=(action "page-prev") next=(action "page-next")}}
+</frame>
+{{/content}}
+{{/extend}}

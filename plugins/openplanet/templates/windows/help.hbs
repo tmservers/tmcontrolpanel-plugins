@@ -1,0 +1,24 @@
+{{#extend "window"}}
+{{#content "window"}}
+<label pos="{{ divide size.x 2 }} -4" size="{{ subtract size.x 8 }} 5" text="{{ data.headline }}" halign="center" valign="center2" textsize="2" textfont="GameFontSemiBold" textcolor="F00" />
+{{#if data.detail}}
+<label pos="{{ divide size.x 2 }} -9" size="{{ subtract size.x 8 }} 4" text="{{ data.detail }}" halign="center" valign="center2" textsize="1" textfont="GameFontRegular" textcolor="{{ @theme.label.background }}" />
+{{/if}}
+
+{{#each data.sections}}
+<frame pos="4 {{ y }}" size="{{ subtract ../size.x 8 }} {{ height }}">
+  <quad pos="0 0" size="{{ subtract ../size.x 8 }} {{ height }}" bgcolor="{{ @theme.quad.foregroundMuted }}" />
+  <quad pos="0 0" size="0.6 {{ height }}" bgcolor="{{ @theme.quad.background }}" />
+  <label pos="3 -3.5" size="{{ subtract ../size.x 14 }} 4" text="{{ question }}" valign="center2" textsize="1.1" textfont="GameFontSemiBold" textcolor="{{ @theme.label.background }}" />
+  {{#each steps}}
+  <label pos="3 {{ y }}" size="4 4" text="{{ number }}." valign="center2" textsize="1" textfont="GameFontSemiBold" textcolor="{{ @theme.label.background }}" opacity="0.6" />
+  <label pos="7 {{ y }}" size="{{ subtract ../../size.x 18 }} 4" text="{{ text }}" valign="center2" textsize="1" textfont="GameFontRegular" textcolor="{{ @theme.label.background }}" />
+  {{/each}}
+</frame>
+{{/each}}
+
+{{#each data.footer}}
+<label pos="{{ divide ../size.x 2 }} {{ y }}" size="{{ subtract ../size.x 8 }} 4" text="{{ text }}" halign="center" valign="center2" textsize="0.9" textfont="GameFontRegular" textcolor="{{ @theme.label.background }}" opacity="0.7" />
+{{/each}}
+{{/content}}
+{{/extend}}

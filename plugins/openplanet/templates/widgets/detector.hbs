@@ -1,0 +1,33 @@
+{{#extend "widget"}}
+{{#content "globals"}}
+declare Text OPLastInfo;
+declare Integer OPLastCheck;
+{{/content}}
+{{#content "script"}}
+// Reports System.ExtraTool_Info, which holds the Openplanet version and signature mode
+Void OPCheck() {
+  declare Text Info = System.ExtraTool_Info;
+  if (Info == "") {
+    TriggerPageAction("{{actionPrefix}}check");
+  } else {
+    TriggerPageAction("{{actionPrefix}}check-" ^ TL::URLEncode(Info));
+  }
+}
+{{/content}}
+{{#content "main"}}
+OPLastInfo = System.ExtraTool_Info;
+OPLastCheck = Now;
+OPCheck();
+{{/content}}
+{{#content "loop"}}
+{{#if data.interval}}
+if (Now - OPLastCheck >= {{ data.interval }}) {
+  OPLastCheck = Now;
+  if (System.ExtraTool_Info != OPLastInfo) {
+    OPLastInfo = System.ExtraTool_Info;
+    OPCheck();
+  }
+}
+{{/if}}
+{{/content}}
+{{/extend}}
