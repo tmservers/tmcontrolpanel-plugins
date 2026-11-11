@@ -98,14 +98,14 @@ class ECMPlugin {
         },
       );
       if (response.status >= 400) {
-        this.ctx.log.error("eCircuitMania request failed", {
-          endpoint,
-          status: response.status,
-          body: response.body.slice(0, 500),
-        });
+        const details = { endpoint, status: response.status, body: response.body.slice(0, 500) };
+        this.ctx.log.error("eCircuitMania request failed", details);
+        this.ctx.captureException(new Error(`eCircuitMania ${endpoint} returned ${response.status}`), details);
       }
     } catch (error) {
       this.ctx.log.error("eCircuitMania request failed", { endpoint, error: String(error) });
+      // The match id and token stay out of the report
+      this.ctx.captureException(error, { endpoint });
     }
   }
 
