@@ -101,7 +101,7 @@ class OpenplanetPlugin {
     ctx.action("check-{info}", (answer, params) =>
       this.onCheck(answer.login, decode(params.info)),
     );
-    ctx.action("open", (answer) => this.openWindow(answer.login));
+    ctx.action("open", (answer) => this.onCommand(answer.login));
     ctx.command("openplanet", (_args, login) => this.onCommand(login));
     // Every admin's window shares these actions; the page is tracked per login
     ctx.action("page-prev", (answer) => this.turnPage(answer.login, -1));
@@ -123,6 +123,7 @@ class OpenplanetPlugin {
   async onConfigUpdate() {
     this.showDetector();
     for (const login of [...this.players.keys()]) await this.evaluate(login);
+    for (const login of [...this.helpWindows.keys()]) this.showHelp(login);
     this.refreshWindows();
   }
 
@@ -199,7 +200,11 @@ class OpenplanetPlugin {
     if (violation) {
       await this.jail(login, violation);
       this.showHelp(login);
-    } else await this.release(login);
+    } else {
+      await this.release(login);
+      // A passing player who opened the window sees their new status
+      if (this.helpWindows.has(login)) this.showHelp(login);
+    }
   }
 
   private async jail(login: string, violation: Violation) {
@@ -273,24 +278,20 @@ class OpenplanetPlugin {
     this.refreshWindows();
   }
 
-  // Players without admin rights get the help window when they are flagged
+  // Admins get the signatures overview, everyone else their own status and help
   private async onCommand(login: string) {
-    if (this.jails.has(login) && !(await this.ctx.players.isAdmin(login))) {
-      this.showHelp(login);
-      return;
-    }
-    await this.openWindow(login);
+    if (await this.ctx.players.isAdmin(login)) await this.openWindow(login);
+    else this.showHelp(login);
   }
 
-  // Tells a flagged player what is wrong and how to fix it; reused while they stay flagged
+  // Shows a player their Openplanet status, the rules and how to fix a violation
   private showHelp(login: string) {
-    const state = this.players.get(login);
-    const jail = this.jails.get(login);
-    if (!state || !jail) return;
     const config = this.config();
     const { data, height } = helpData({
-      violation: jail.violation,
-      info: state.info,
+      violation: this.jails.get(login)?.violation ?? null,
+      info: this.players.get(login)?.info ?? null,
+      allowOpenplanet: config.allowOpenplanet,
+      enforceSignatures: config.enforceSignatures,
       allowed: allowedSignatures(config),
       minimumVersion: config.minimumVersion,
       enforcement: config.enforcement,
@@ -323,14 +324,8 @@ class OpenplanetPlugin {
     this.helpWindows.delete(login);
   }
 
+  // Callers check that the login is an admin
   private async openWindow(login: string) {
-    // The button is admin-only, but anyone can send the action or command
-    if (!(await this.ctx.players.isAdmin(login))) {
-      await this.ctx.chat
-        .sendTo(login, "Only server admins can view Openplanet signatures.")
-        .catch(() => undefined);
-      return;
-    }
     if (this.windows.has(login)) return;
     const window = this.ctx.ui.window({
       id: "signatures",

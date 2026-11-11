@@ -43,6 +43,19 @@ const calls = (h: Awaited<ReturnType<typeof setup>>, method: string) =>
   h.session.callsTo(method);
 const answer = (info: string) => `openplanet:check-${info}`;
 
+// Latest page sent with the help id; a hide sends an empty page, which counts as closed
+const help = (h: Awaited<ReturnType<typeof setup>>) => {
+  const page = [...h.session.sent]
+    .reverse()
+    .map(({ method, params }) =>
+      method.startsWith("SendDisplayManialinkPage")
+        ? String(params[method.endsWith("ToLogin") ? 1 : 0])
+        : "",
+    )
+    .find((xml) => xml.includes('id="plg.openplanet.help"'));
+  return page?.includes("<label") ? page : null;
+};
+
 describe("Openplanet parsing and rules", () => {
   it("parses known, missing and malformed tool information", () => {
     expect(parseToolInfo("Openplanet 1.27.3")).toMatchObject({
@@ -235,16 +248,11 @@ describe("Openplanet plugin", () => {
     expect(calls(h, "ForceSpectator")).toHaveLength(0);
   });
 
-  it("restricts the signatures window to admins", async () => {
+  it("opens the signatures window for admins and the help window for others", async () => {
     const h = await setup();
     await h.click("p1", "openplanet:open");
-    expect(
-      calls(h, "ChatSendServerMessageToLogin").at(-1)?.params[0],
-    ).toContain("Only server admins");
-    await h.chat("p1", "/openplanet");
-    expect(
-      calls(h, "ChatSendServerMessageToLogin").at(-1)?.params[0],
-    ).toContain("Only server admins");
+    expect(help(h)).toContain("Openplanet check");
+    expect(help(h)).toContain("has not reported");
     expect(h.session.lastManialink("plg.openplanet.signatures")).toBeNull();
     await h.click("admin", answer("Openplanet 1.27.3 [COMPETITION]"));
     await h.click("admin", "openplanet:open");
@@ -272,18 +280,6 @@ describe("Openplanet plugin", () => {
   });
 
   it("shows flagged players a help window per violation and closes it once they pass", async () => {
-    // Latest page sent with the help id; a hide sends an empty page, which counts as closed
-    const help = (h: Awaited<ReturnType<typeof setup>>) => {
-      const page = [...h.session.sent]
-        .reverse()
-        .map(({ method, params }) =>
-          method.startsWith("SendDisplayManialinkPage")
-            ? String(params[method.endsWith("ToLogin") ? 1 : 0])
-            : "",
-        )
-        .find((xml) => xml.includes('id="plg.openplanet.help"'));
-      return page?.includes("<label") ? page : null;
-    };
     const h = await setup({
       enforceSignatures: true,
       allowedSignatures: ["REGULAR", "COMPETITION"],
@@ -326,18 +322,28 @@ describe("Openplanet plugin", () => {
     expect(window).toContain("Rejoin the server");
   });
 
-  it("keeps /openplanet admin-only for players who pass", async () => {
-    const h = await setup();
+  it("shows passing players their status, the rules and matching help", async () => {
+    const h = await setup({
+      enforceSignatures: true,
+      allowedSignatures: ["REGULAR"],
+      minimumVersion: "1.20",
+    });
     await h.click("p1", answer("Openplanet 1.27.3"));
     await h.chat("p1", "/openplanet");
-    expect(
-      h.session.sent.some(({ params }) =>
-        String(params[1] ?? "").includes('id="plg.openplanet.help"'),
-      ),
-    ).toBe(false);
-    expect(
-      calls(h, "ChatSendServerMessageToLogin").at(-1)?.params[0],
-    ).toContain("Only server admins");
+    let window = help(h)!;
+    expect(window).toContain("Your Openplanet setup is allowed");
+    expect(window).toContain("Openplanet 1.27.3 with REGULAR");
+    expect(window).toContain("version 1.20 or newer");
+    expect(window).toContain("How do I switch signature mode?");
+    expect(window).toContain("How do I update Openplanet?");
+    expect(window).toContain("updates when your setup changes");
+    expect(calls(h, "ChatSendServerMessageToLogin")).toHaveLength(0);
+
+    // Dropping Openplanet updates the open window instead of closing it
+    await h.click("p1", "openplanet:check");
+    window = help(h)!;
+    expect(window).toContain("No Openplanet detected");
+    expect(window).not.toContain("How do I");
   });
 
   it("cancels kick on disconnect and reevaluates on config changes", async () => {

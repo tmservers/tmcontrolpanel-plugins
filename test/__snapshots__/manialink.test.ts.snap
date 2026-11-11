@@ -4622,7 +4622,8 @@ exports[`TemplateRenderer > renders windows/help 1`] = `
 
   <quad pos="0 -5" size="50 40" bgcolor="DDD" />
   <frame pos="0 -5" size="50 40">
-    <label pos="25 -4" size="42 5" text="" halign="center" valign="center2" textsize="2" textfont="GameFontSemiBold" textcolor="F00" />
+    <label pos="25 -4" size="42 5" text="" halign="center" valign="center2" textsize="2" textfont="GameFontSemiBold" textcolor="222" />
+<label pos="25 -13" size="42 4" text="Any signature,Action: spectator" halign="center" valign="center2" textsize="0.9" textfont="GameFontRegular" textcolor="222" opacity="0.7" />
 
 
 

@@ -1,8 +1,11 @@
 {{#extend "window"}}
 {{#content "window"}}
-<label pos="{{ divide size.x 2 }} -4" size="{{ subtract size.x 8 }} 5" text="{{ data.headline }}" halign="center" valign="center2" textsize="2" textfont="GameFontSemiBold" textcolor="F00" />
+<label pos="{{ divide size.x 2 }} -4" size="{{ subtract size.x 8 }} 5" text="{{ data.headline }}" halign="center" valign="center2" textsize="2" textfont="GameFontSemiBold" textcolor="{{#if data.headlineColor}}{{ data.headlineColor }}{{else}}{{ @theme.label.background }}{{/if}}" />
 {{#if data.detail}}
 <label pos="{{ divide size.x 2 }} -9" size="{{ subtract size.x 8 }} 4" text="{{ data.detail }}" halign="center" valign="center2" textsize="1" textfont="GameFontRegular" textcolor="{{ @theme.label.background }}" />
+{{/if}}
+{{#if data.rules}}
+<label pos="{{ divide size.x 2 }} -13" size="{{ subtract size.x 8 }} 4" text="{{ data.rules }}" halign="center" valign="center2" textsize="0.9" textfont="GameFontRegular" textcolor="{{ @theme.label.background }}" opacity="0.7" />
 {{/if}}
 
 {{#each data.sections}}
