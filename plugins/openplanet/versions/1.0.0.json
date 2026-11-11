@@ -1,0 +1,6 @@
+{
+  "url": "openplanet-1.0.0.zip",
+  "sha256": "cb978412a9ddc3cd0df3e427b135ce1e1ab84de34e652d1fa4e4993a335f176a",
+  "publishedAt": "2026-11-11T20:15:44.003Z",
+  "changelog": "First release: Openplanet detection with signature mode and minimum version rules, warn/spectator/kick enforcement, an admin signatures overview and a help window for players."
+}
