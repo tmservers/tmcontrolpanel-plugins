@@ -1,0 +1,6 @@
+{
+  "url": "map-info-1.1.2.zip",
+  "sha256": "bfd57b005438e4c4032fb822981ce77f04a8faa36ce2402d45bfcc7b0ba9f98c",
+  "publishedAt": "2026-11-11T19:19:16.848Z",
+  "changelog": "A map name whose last color change is white ($fff) now ends in the widget's text color, so it stays readable on light themes."
+}
