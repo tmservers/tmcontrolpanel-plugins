@@ -1,8 +1,8 @@
 {
   "slug": "match",
   "name": "Match",
-  "version": "1.4.1",
-  "sdk": 4,
+  "version": "1.5.0",
+  "sdk": 5,
   "description": "Manages a match on the server: starting and stopping it, pausing, a pick and ban phase and a lobby.",
   "author": "TMControlPanel",
   "license": "MIT",
@@ -173,21 +173,6 @@
             "visibleWhen": {
               "property": "type",
               "equals": "team"
-            },
-            "csv": {
-              "columns": {
-                "name": "Team"
-              },
-              "lists": {
-                "players": [
-                  "Player Login 1",
-                  "Player Login 2",
-                  "Player Login 3",
-                  "Player Login 4",
-                  "Player Login 5"
-                ]
-              },
-              "seed": "seed"
             }
           }
         }
@@ -234,6 +219,13 @@
           "lobby"
         ]
       }
-    ]
+    ],
+    "tmevents": {
+      "maps": "maps",
+      "type": "pickAndBan.type",
+      "teams": "pickAndBan.teams",
+      "players": "pickAndBan.players",
+      "order": "pickAndBan.order"
+    }
   }
 }

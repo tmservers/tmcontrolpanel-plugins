@@ -62,6 +62,29 @@ Arrays of objects may declare CSV imports:
 ```
 
 The form validates JSON and CSV imports before replacing its values.
+
+## Trackmania Events imports
+
+With `"sdk": 5`, the root `configSchema` may declare a `tmevents` object. Each
+value is a dotted path to the config field that receives that part of the event:
+
+```json
+"tmevents": {
+  "maps": "maps",
+  "type": "pickAndBan.type",
+  "teams": "pickAndBan.teams",
+  "players": "pickAndBan.players",
+  "order": "pickAndBan.order"
+}
+```
+
+The settings form shows an Import from Trackmania Events button. After the admin
+connects their Trackmania Events account in the panel, they can select an event
+to import its maps, teams and player seeding, and pick and ban order. Maps are
+matched by UID against maps already on the server. `maps` receives map files;
+`teams` receives `{name, seed, players}` entries; `players` receives `{login,
+seed}` entries; `type` receives `team` or `player`; and `order` receives the pick
+and ban steps.
 Limits include 50 properties per object, five nested fields, 500 items per list and
 10 tabs. The plugin SDK validates the manifest, the panel validates saves, and the
 service validates config on load. Config changes should remain compatible with
