@@ -1,5 +1,9 @@
 {
   "extends": "./.controlpanel/tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "maniatsx"
+  },
   "include": [
     "plugins/*/src",
     "scripts",

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import slugid from "slugid";
 import { isValidEcmApiKey } from "../plugins/ecm/src";
-import { resetTrailingWhite } from "../plugins/map-info/src";
+import { resetTrailingWhite } from "../plugins/map-info/src/names";
 import { sortRoundEntries } from "../plugins/live-round/src";
 import { FINISHED, sortActiveRuns } from "../plugins/ta-active-runs/src";
 import { rankLeaderboard } from "../plugins/ta-leaderboard/src";
@@ -128,15 +128,15 @@ describe("ta-active-runs", () => {
 describe("map-info", () => {
   it("shows the current map", async () => {
     const h = await withPackage("map-info");
-    expect(
-      h.session.widgetJson(
-        page("map-info", "map-info-widget-update"),
-        "mapJson",
-      ),
-    ).toEqual({
-      name: "Map A",
-      author: "Author",
-    });
+    // The update page publishes the map; the widget binds its labels to it
+    const update = h.session.lastManialink(
+      page("map-info", "map-info-widget-update"),
+    );
+    expect(update).toContain('name = "Map A"');
+    expect(update).toContain('author = "Author"');
+    const widget = h.session.lastManialink(page("map-info", "map-info-widget"));
+    expect(widget).toContain('<frame id="widget" pos="100 85"');
+    expect(widget).toMatch(/Mtx_X_\w*map\w*info\w*map/);
   });
 
   it("resets a trailing white color change to the widget color", () => {
@@ -463,11 +463,19 @@ describe("ecm", () => {
   });
 
   it("reports failed eCircuitMania requests to Sentry without the key", async () => {
-    const reports: { error: unknown; context: { tags: Record<string, string>; extra?: Record<string, unknown> } }[] = [];
+    const reports: {
+      error: unknown;
+      context: {
+        tags: Record<string, string>;
+        extra?: Record<string, unknown>;
+      };
+    }[] = [];
     const h = await withPackage("ecm", {
       players: [player("p1")],
       config: { apiKey: "m_secret", isRecording: true },
-      errors: { captureException: (error, context) => reports.push({ error, context }) },
+      errors: {
+        captureException: (error, context) => reports.push({ error, context }),
+      },
     });
     h.http.response = { status: 500, headers: {}, body: "boom" };
     await h.script("Trackmania.Event.WayPoint", finish("p1", 30000));
@@ -480,9 +488,18 @@ describe("ecm", () => {
       "eCircuitMania match-addRoundTime returned 500",
       "timeout",
     ]);
-    expect(reports[0].context.extra).toEqual({ endpoint: "match-addRoundTime", status: 500, body: "boom" });
-    expect(reports[1].context.extra).toEqual({ endpoint: "match-addRoundTime" });
-    expect(reports[0].context.tags).toMatchObject({ plugin: "ecm", source: "plugin" });
+    expect(reports[0].context.extra).toEqual({
+      endpoint: "match-addRoundTime",
+      status: 500,
+      body: "boom",
+    });
+    expect(reports[1].context.extra).toEqual({
+      endpoint: "match-addRoundTime",
+    });
+    expect(reports[0].context.tags).toMatchObject({
+      plugin: "ecm",
+      source: "plugin",
+    });
     expect(JSON.stringify(reports)).not.toContain("secret");
   });
 
