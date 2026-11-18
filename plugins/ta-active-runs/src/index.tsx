@@ -10,27 +10,8 @@ import {
   type WaypointEvent,
   type Widget,
 } from "@tmcontrolpanel/plugin-sdk";
-
-export type ActiveRun = {
-  login: string;
-  name: string;
-  time: number;
-  // Checkpoint count; FINISHED marks a completed run
-  checkpoint: number;
-};
-
-// Sentinel understood by the widget template
-export const FINISHED = -69;
-
-// Furthest along first, finished runs last; ties broken by time
-export function sortActiveRuns(runs: ActiveRun[]): ActiveRun[] {
-  return [...runs].sort((a, b) => {
-    if (a.checkpoint === FINISHED && b.checkpoint !== FINISHED) return 1;
-    if (b.checkpoint === FINISHED && a.checkpoint !== FINISHED) return -1;
-    if (a.checkpoint !== b.checkpoint) return b.checkpoint - a.checkpoint;
-    return a.time - b.time;
-  });
-}
+import { FINISHED, sortActiveRuns, type ActiveRun } from "./names";
+import { ActiveRunsUpdate, ActiveRunsWidget } from "./widget";
 
 class TAActiveRunsPlugin {
   private readonly widget: Widget;
@@ -40,11 +21,11 @@ class TAActiveRunsPlugin {
   constructor(private readonly ctx: PluginContext) {
     this.widget = ctx.ui.widget({
       id: "ta-active-runs-widget",
-      template: "widgets/ta-active-runs/ta-active-runs",
+      component: ActiveRunsWidget,
+      updateComponent: ActiveRunsUpdate,
       position: { x: -156, y: 73.5 },
     });
     this.render = throttle(ctx, () => this.send(), 100);
-
     ctx.on("beginMap", () => this.reset());
     ctx.on("playerConnect", (player) => this.onPlayerConnect(player));
     ctx.on("playerInfo", (player) => this.onPlayerInfo(player));
@@ -64,8 +45,12 @@ class TAActiveRunsPlugin {
   private onPlayerConnect(player: PlayerInfo) {
     if (getSpectatorStatus(player.spectatorStatus).spectator) return;
     if (this.runs.some((run) => run.login === player.login)) return;
-
-    this.runs.push({ login: player.login, name: player.nickName, time: 0, checkpoint: 0 });
+    this.runs.push({
+      login: player.login,
+      name: player.nickName,
+      time: 0,
+      checkpoint: 0,
+    });
     this.render();
   }
 
@@ -84,7 +69,12 @@ class TAActiveRunsPlugin {
         run.time = 0;
         run.checkpoint = 0;
       } else {
-        this.runs.push({ login: player.login, name: player.nickName, time: 0, checkpoint: 0 });
+        this.runs.push({
+          login: player.login,
+          name: player.nickName,
+          time: 0,
+          checkpoint: 0,
+        });
       }
     }
     this.render();
@@ -115,9 +105,14 @@ class TAActiveRunsPlugin {
   }
 
   private async reset() {
-    const playerList = await this.ctx.gbx.call<SPlayerInfo[]>("GetPlayerList", 1000, 0);
-    const mainServer = await this.ctx.gbx.call<MainServerPlayerInfo>("GetMainServerPlayerInfo");
-
+    const playerList = await this.ctx.gbx.call<SPlayerInfo[]>(
+      "GetPlayerList",
+      1000,
+      0,
+    );
+    const mainServer = await this.ctx.gbx.call<MainServerPlayerInfo>(
+      "GetMainServerPlayerInfo",
+    );
     this.runs = (Array.isArray(playerList) ? playerList : [])
       .filter(
         (player) =>
@@ -125,18 +120,20 @@ class TAActiveRunsPlugin {
           player.Login !== mainServer?.Login &&
           !getSpectatorStatus(player.SpectatorStatus).spectator,
       )
-      .map((player) => ({ login: player.Login, name: player.NickName, time: 0, checkpoint: 0 }));
-
+      .map((player) => ({
+        login: player.Login,
+        name: player.NickName,
+        time: 0,
+        checkpoint: 0,
+      }));
     this.render();
   }
 
   private send() {
     this.runs = sortActiveRuns(this.runs);
-    this.widget.setData({ activeRunsJson: JSON.stringify(this.runs) });
+    this.widget.setData({ runs: this.runs });
     this.widget.update();
   }
 }
 
-export default definePlugin({
-  create: (ctx) => new TAActiveRunsPlugin(ctx),
-});
+export default definePlugin({ create: (ctx) => new TAActiveRunsPlugin(ctx) });

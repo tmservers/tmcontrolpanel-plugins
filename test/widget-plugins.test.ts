@@ -4,7 +4,7 @@ import { isValidEcmApiKey } from "../plugins/ecm/src";
 import { resetTrailingWhite } from "../plugins/map-info/src/names";
 import { formatRecordTime } from "../plugins/records-info/src/time";
 import { sortRoundEntries } from "../plugins/live-round/src";
-import { FINISHED, sortActiveRuns } from "../plugins/ta-active-runs/src";
+import { FINISHED, sortActiveRuns } from "../plugins/ta-active-runs/src/names";
 import { rankLeaderboard } from "../plugins/ta-leaderboard/src/names";
 import {
   createHarness,
@@ -123,12 +123,13 @@ describe("ta-active-runs", () => {
     });
     await h.clock.advance(100);
 
-    expect(
-      h.session.widgetJson(
-        page("ta-active-runs", "ta-active-runs-widget-update"),
-        "activeRunsJson",
-      ),
-    ).toEqual([{ login: "p1", name: "Nick p1", time: 1234, checkpoint: 1 }]);
+    const update = h.session.lastManialink(
+      page("ta-active-runs", "ta-active-runs-widget-update"),
+    );
+    expect(update).toContain('login = "p1"');
+    expect(update).toContain('name = "Nick p1"');
+    expect(update).toContain("time = 1234");
+    expect(update).toContain("checkpoint = 1");
   });
 });
 
