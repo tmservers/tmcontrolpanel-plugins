@@ -346,14 +346,25 @@ describe("live-ranking", () => {
       ],
     });
     await h.clock.advance(100);
-    const rankings = h.session.widgetJson(
+    const update = h.session.lastManialink(
       page("live-ranking", "live-ranking-widget-update"),
-      "rankingsJson",
     );
-    expect(rankings.map((r: any) => [r.login, r.rank, r.points])).toEqual([
-      ["b", 1, 20],
-      ["a", 2, 10],
-    ]);
+    expect(update).toContain('login = "b"');
+    expect(update).toContain('name = "B"');
+    expect(update).toContain("rank = 1");
+    expect(update).toContain("points = 20");
+    expect(update).toContain('login = "a"');
+    expect(update).toContain("rank = 2");
+    expect(update).toContain("points = 10");
+    // Ranked order: b before a
+    expect(update!.indexOf('login = "b"')).toBeLessThan(
+      update!.indexOf('login = "a"'),
+    );
+    const widget = h.session.lastManialink(
+      page("live-ranking", "live-ranking-widget"),
+    );
+    expect(widget).toContain('text="Live Ranking"');
+    expect(widget).toContain('size="55 42"');
   });
 });
 
