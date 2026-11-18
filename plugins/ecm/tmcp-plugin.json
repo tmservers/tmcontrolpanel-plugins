@@ -1,15 +1,13 @@
 {
   "slug": "ecm",
   "name": "eCircuitMania",
-  "version": "1.2.2",
+  "version": "2.0.0",
   "sdk": 5,
   "description": "Sends rounds and finishes to eCircuitMania while a match is being recorded.",
   "author": "TMControlPanel",
   "license": "MIT",
   "repository": "https://github.com/MRegterschot/tmcontrolpanel-plugins",
-  "commands": [
-    "ecm"
-  ],
+  "commands": ["ecm"],
   "capabilities": [
     "ui",
     "http:us-central1-fantasy-trackmania.cloudfunctions.net"

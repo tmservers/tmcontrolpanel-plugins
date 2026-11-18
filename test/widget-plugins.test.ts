@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import slugid from "slugid";
-import { isValidEcmApiKey } from "../plugins/ecm/src";
+import { isValidEcmApiKey } from "../plugins/ecm/src/validation";
 import { resetTrailingWhite } from "../plugins/map-info/src/names";
 import { formatRecordTime } from "../plugins/records-info/src/time";
 import { sortRoundEntries } from "../plugins/live-round/src";
@@ -544,6 +544,35 @@ describe("ecm", () => {
       apiKey: "match_token",
       isRecording: true,
     });
+  });
+
+  it("wires the window buttons and only shows the key to editors", async () => {
+    const h = await withPackage("ecm", {
+      players: [player("editor"), player("viewer")],
+      config: { editors: ["editor"], apiKey: "match_secret" },
+    });
+    await h.chat("viewer", "/ecm");
+    const viewerUpdate = h.session.lastManialink(
+      page("ecm", "ecm-window-update"),
+    );
+    expect(viewerUpdate).toContain("isEditor = False");
+    expect(viewerUpdate).not.toContain("match_secret");
+
+    const window = h.session.lastManialink(page("ecm", "ecm-window"));
+    for (const action of [
+      "ecm-toggle-recording",
+      "ecm-save-api-key",
+      "ecm-decrease-round-offset",
+      "ecm-increase-round-offset",
+    ]) {
+      expect(window).toMatch(new RegExp(`action="[^"]*${action}"`));
+    }
+    expect(window).toContain('name="ecm-api-key-entry"');
+
+    await h.chat("editor", "/ecm");
+    expect(h.session.lastManialink(page("ecm", "ecm-window-update"))).toContain(
+      "match_secret",
+    );
   });
 
   it("adds its button to the action group", async () => {
