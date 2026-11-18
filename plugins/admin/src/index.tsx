@@ -1,20 +1,28 @@
-import { definePlugin, type PluginContext, type Widget } from "@tmcontrolpanel/plugin-sdk";
+import {
+  definePlugin,
+  type PluginContext,
+  type Widget,
+} from "@tmcontrolpanel/plugin-sdk";
+import { NotifyAdminWidget } from "./widget";
 
-class NotifyAdminPlugin {
+export { NotifyAdminWidget } from "./widget";
+
+export class NotifyAdminPlugin {
   private readonly widget: Widget;
 
   constructor(private readonly ctx: PluginContext) {
     this.widget = ctx.ui.widget({
       id: "notify-admin-widget",
-      template: "widgets/notify-admin/notify-admin",
-      withUpdate: false,
+      component: NotifyAdminWidget,
+      data: { action: ctx.ui.action("notify-admin-action").name },
       position: { x: 119, y: -70 },
       hideWhileDriving: true,
-      data: { notifyAdminAction: "notify-admin-action" },
     });
 
     ctx.action("notify-admin-action", (answer) => this.notify(answer.login));
-    ctx.command("admin", (args, login) => this.notify(login, args.join(" ") || undefined));
+    ctx.command("admin", (args, login) =>
+      this.notify(login, args.join(" ") || undefined),
+    );
   }
 
   start() {

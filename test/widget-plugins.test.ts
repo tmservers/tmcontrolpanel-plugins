@@ -183,9 +183,11 @@ describe("admin", () => {
     expect(
       h.session.callsTo("ChatSendServerMessageToLogin").at(-1)?.params,
     ).toEqual(["Admins have been notified", "p1"]);
-    expect(
-      h.session.lastManialink(page("admin", "notify-admin-widget")),
-    ).toContain('action="admin:notify-admin-action"');
+    const renderedWidget = h.session.lastManialink(
+      page("admin", "notify-admin-widget"),
+    );
+    expect(renderedWidget).toContain("Notify Admin");
+    expect(renderedWidget).toContain('action="admin:notify-admin-action"');
   });
 
   it("emits helpRequested for other plugins", async () => {
