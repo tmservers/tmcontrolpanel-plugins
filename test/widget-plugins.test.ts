@@ -313,21 +313,15 @@ describe("player-info", () => {
     await h.runtime.start();
     await new Promise((r) => setImmediate(r));
 
-    expect(
-      h.session.widgetJson(
-        page("player-info", "player-info-widget-update"),
-        "playerInfosJson",
-      ),
-    ).toEqual([
-      {
-        login,
-        name: `Nick ${login}`,
-        personalBest: 44000,
-        localRecord: 45000,
-        device: "Keyboard",
-        camera: "Unknown",
-      },
-    ]);
+    const update = h.session.lastManialink(
+      page("player-info", "player-info-widget-update"),
+    );
+    expect(update).toContain(`login = "${login}"`);
+    expect(update).toContain(`name = "Nick ${login}"`);
+    expect(update).toContain("personalBest = 44000");
+    expect(update).toContain("localRecord = 45000");
+    expect(update).toContain('device = "Keyboard"');
+    expect(update).toContain('camera = "Unknown"');
   });
 });
 
