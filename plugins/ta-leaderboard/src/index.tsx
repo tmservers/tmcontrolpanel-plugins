@@ -146,6 +146,57 @@ function LeaderboardWidget(props: WidgetRenderProps) {
         valign="center"
         textsize={1}
       />
+      <framemodel id="record-row">
+        <Panel tone="surface" size={[5, 5]} />
+        <Panel tone="content" pos={[5, 0]} size={[50, 5]} />
+        <Label
+          tone="text"
+          font="title"
+          pos={[2.4, -2.25]}
+          size={[5, 5]}
+          text="0"
+          halign="center"
+          valign="center"
+          textsize={1.25}
+        />
+        <quad
+          pos={[6.25, -1]}
+          size={[4.5, 3]}
+          image="file://Media/Flags/WOR.dds"
+        />
+        <Label
+          tone="contentText"
+          font="body"
+          pos={[12, -2.25]}
+          size={[27, 5]}
+          text="-"
+          valign="center"
+          textsize={1.2}
+        />
+        <Label
+          tone="contentText"
+          font="title"
+          pos={[53, -2.25]}
+          size={[12.5, 5]}
+          text="--:--.---"
+          valign="center"
+          halign="right"
+          textsize={1}
+        />
+        <frame pos={[56, 0]} size={[14.5, 5]}>
+          <quad size={[14.5, 5]} bgcolor="22D" />
+          <Label
+            tone="text"
+            font="title"
+            pos={[7.25, -2.25]}
+            size={[14.5, 5]}
+            text="-00.000"
+            halign="center"
+            valign="center"
+            textsize={1}
+          />
+        </frame>
+      </framemodel>
       <frame
         id="records"
         ref={recordsFrameRef}
@@ -153,61 +204,9 @@ function LeaderboardWidget(props: WidgetRenderProps) {
         size={[55, 42]}
       >
         <Panel tone="content" size={[55, 525]} opacity={0} scriptevents />
-        {Array.from({ length: 100 }, (_, index) => {
-          return (
-            <frame key={index} pos={[0, -index * 5.25]} size={[70.5, 5]}>
-              <Panel tone="surface" size={[5, 5]} />
-              <Panel tone="content" pos={[5, 0]} size={[50, 5]} />
-              <Label
-                tone="text"
-                font="title"
-                pos={[2.4, -2.25]}
-                size={[5, 5]}
-                text="0"
-                halign="center"
-                valign="center"
-                textsize={1.25}
-              />
-              <quad
-                pos={[6.25, -1]}
-                size={[4.5, 3]}
-                image="file://Media/Flags/WOR.dds"
-              />
-              <Label
-                tone="contentText"
-                font="body"
-                pos={[12, -2.25]}
-                size={[27, 5]}
-                text="-"
-                valign="center"
-                textsize={1.2}
-              />
-              <Label
-                tone="contentText"
-                font="title"
-                pos={[53, -2.25]}
-                size={[12.5, 5]}
-                text="--:--.---"
-                valign="center"
-                halign="right"
-                textsize={1}
-              />
-              <frame pos={[56, 0]} size={[14.5, 5]}>
-                <quad size={[14.5, 5]} bgcolor="22D" />
-                <Label
-                  tone="text"
-                  font="title"
-                  pos={[7.25, -2.25]}
-                  size={[14.5, 5]}
-                  text="-00.000"
-                  halign="center"
-                  valign="center"
-                  textsize={1}
-                />
-              </frame>
-            </frame>
-          );
-        })}
+        {Array.from({ length: 100 }, (_, index) => (
+          <frameinstance modelid="record-row" pos={[0, -index * 5.25]} />
+        ))}
       </frame>
     </WidgetFrame>
   );

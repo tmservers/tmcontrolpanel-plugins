@@ -19,6 +19,7 @@ import {
   CMlFrame,
   CMlLabel,
   CMlQuad,
+  CMlScriptEvent,
   ColorLib,
   MathLib,
   TextLib,
@@ -69,10 +70,9 @@ const pointsText = client.fn(
   },
 );
 
-// One shared function, so the 100 row handlers stay one-line calls
-const spectateRow = client.fn((row: Integer): void => {
-  const frame = rankingsFrameRef.control;
-  const login = (frame.Controls[row + 1] as CMlFrame).DataAttributeGet("login");
+// Rows are framemodel instances sharing control ids, so the clicked row comes from the event
+const spectateRow = client.fn((event: CMlScriptEvent): void => {
+  const login = (event.Control!.Parent as CMlFrame).DataAttributeGet("login");
   if (login !== "") {
     if (!ml.IsSpectatorClient) ml.RequestSpectatorClient(true);
     ml.SetSpectateTarget(login);
@@ -142,6 +142,53 @@ function LiveRankingWidget(props: WidgetRenderProps) {
         valign="center"
         textsize={1}
       />
+      <framemodel id="ranking-row">
+        <Panel tone="surface" size={[5, 5]} />
+        <Panel tone="content" pos={[5, 0]} size={[50, 5]} />
+        <Label
+          tone="text"
+          font="title"
+          pos={[2.4, -2.25]}
+          size={[5, 5]}
+          text="0"
+          halign="center"
+          valign="center"
+          textsize={1.25}
+        />
+        <quad
+          pos={[6.25, -1]}
+          size={[4.5, 3]}
+          image="file://Media/Flags/WOR.dds"
+        />
+        <Label
+          tone="contentText"
+          font="body"
+          pos={[12, -2.25]}
+          size={[32, 5]}
+          text="-"
+          valign="center"
+          textsize={1.2}
+        />
+        <Label
+          tone="contentText"
+          font="title"
+          pos={[53, -2.25]}
+          size={[7.5, 5]}
+          text="0"
+          valign="center"
+          halign="right"
+          textsize={1}
+        />
+        <quad
+          class="trigger"
+          pos={[0, 0]}
+          z-index={-2}
+          size={[55, 5]}
+          opacity={0}
+          scriptevents
+          onClick={client.handler((event) => spectateRow(event))}
+        />
+      </framemodel>
       <frame
         id="rankings"
         ref={rankingsFrameRef}
@@ -149,58 +196,9 @@ function LiveRankingWidget(props: WidgetRenderProps) {
         size={[55, 42]}
       >
         <Panel tone="content" size={[55, 525]} opacity={0} scriptevents />
-        {Array.from({ length: 100 }, (_, index) => {
-          const row: Integer = index;
-          return (
-            <frame key={index} pos={[0, -index * 5.25]} size={[55, 5]}>
-              <Panel tone="surface" size={[5, 5]} />
-              <Panel tone="content" pos={[5, 0]} size={[50, 5]} />
-              <Label
-                tone="text"
-                font="title"
-                pos={[2.4, -2.25]}
-                size={[5, 5]}
-                text="0"
-                halign="center"
-                valign="center"
-                textsize={1.25}
-              />
-              <quad
-                pos={[6.25, -1]}
-                size={[4.5, 3]}
-                image="file://Media/Flags/WOR.dds"
-              />
-              <Label
-                tone="contentText"
-                font="body"
-                pos={[12, -2.25]}
-                size={[32, 5]}
-                text="-"
-                valign="center"
-                textsize={1.2}
-              />
-              <Label
-                tone="contentText"
-                font="title"
-                pos={[53, -2.25]}
-                size={[7.5, 5]}
-                text="0"
-                valign="center"
-                halign="right"
-                textsize={1}
-              />
-              <quad
-                class="trigger"
-                pos={[0, 0]}
-                z-index={-2}
-                size={[55, 5]}
-                opacity={0}
-                scriptevents
-                onClick={client.handler(() => spectateRow(row))}
-              />
-            </frame>
-          );
-        })}
+        {Array.from({ length: 100 }, (_, index) => (
+          <frameinstance modelid="ranking-row" pos={[0, -index * 5.25]} />
+        ))}
       </frame>
     </WidgetFrame>
   );

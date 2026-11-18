@@ -6,6 +6,7 @@ import {
   CMlFrame,
   CMlLabel,
   CMlQuad,
+  CMlScriptEvent,
   MathLib,
   TextLib,
   vec2,
@@ -24,10 +25,9 @@ const EMPTY_RUNS: ClientRun[] = [];
 const runs = client.shared<ClientRun[]>("runs", EMPTY_RUNS);
 const runsFrameRef = client.ref<CMlFrame>();
 
-// One shared function, so the 100 row handlers stay one-line calls
-const spectateRow = client.fn((row: Integer): void => {
-  const frame = runsFrameRef.control;
-  const login = (frame.Controls[row + 1] as CMlFrame).DataAttributeGet("login");
+// Rows are framemodel instances sharing control ids, so the clicked row comes from the event
+const spectateRow = client.fn((event: CMlScriptEvent): void => {
+  const login = (event.Control!.Parent as CMlFrame).DataAttributeGet("login");
   if (login !== "") ml.SetSpectateTarget(login);
 });
 
@@ -86,6 +86,53 @@ function ActiveRunsWidget(props: WidgetRenderProps) {
         valign="center"
         textsize={1}
       />
+      <framemodel id="run-row">
+        <Panel tone="content" size={[40.5, 5]} />
+        <quad pos={[40.5, 0]} size={[14.5, 5]} bgcolor="BBB" />
+        <quad
+          pos={[1.25, -1]}
+          size={[4.5, 3]}
+          image="file://Media/Flags/WOR.dds"
+        />
+        <Label
+          tone="contentText"
+          font="body"
+          pos={[7, -2.25]}
+          size={[30.5, 5]}
+          text="-"
+          valign="center"
+          textsize={1.2}
+        />
+        <Label
+          tone="contentText"
+          font="body"
+          pos={[39.75, -2.25]}
+          size={[5, 5]}
+          text="0"
+          halign="right"
+          valign="center"
+          textsize={1}
+        />
+        <Label
+          tone="contentText"
+          font="title"
+          pos={[54, -2.25]}
+          size={[12.5, 5]}
+          text="--:--.---"
+          halign="right"
+          valign="center"
+          textsize={1}
+        />
+        <quad
+          class="trigger"
+          pos={[0, 0]}
+          z-index={-2}
+          size={[55, 5]}
+          opacity={0}
+          scriptevents
+          onClick={client.handler((event) => spectateRow(event))}
+        />
+      </framemodel>
       <frame
         id="active-runs"
         ref={runsFrameRef}
@@ -93,58 +140,9 @@ function ActiveRunsWidget(props: WidgetRenderProps) {
         size={[55, 42]}
       >
         <Panel tone="content" size={[55, 525]} opacity={0} scriptevents />
-        {Array.from({ length: 100 }, (_, index) => {
-          const row: Integer = index;
-          return (
-            <frame key={index} pos={[0, -index * 5.25]} size={[55, 5]}>
-              <Panel tone="content" size={[40.5, 5]} />
-              <quad pos={[40.5, 0]} size={[14.5, 5]} bgcolor="BBB" />
-              <quad
-                pos={[1.25, -1]}
-                size={[4.5, 3]}
-                image="file://Media/Flags/WOR.dds"
-              />
-              <Label
-                tone="contentText"
-                font="body"
-                pos={[7, -2.25]}
-                size={[30.5, 5]}
-                text="-"
-                valign="center"
-                textsize={1.2}
-              />
-              <Label
-                tone="contentText"
-                font="body"
-                pos={[39.75, -2.25]}
-                size={[5, 5]}
-                text="0"
-                halign="right"
-                valign="center"
-                textsize={1}
-              />
-              <Label
-                tone="contentText"
-                font="title"
-                pos={[54, -2.25]}
-                size={[12.5, 5]}
-                text="--:--.---"
-                halign="right"
-                valign="center"
-                textsize={1}
-              />
-              <quad
-                class="trigger"
-                pos={[0, 0]}
-                z-index={-2}
-                size={[55, 5]}
-                opacity={0}
-                scriptevents
-                onClick={client.handler(() => spectateRow(row))}
-              />
-            </frame>
-          );
-        })}
+        {Array.from({ length: 100 }, (_, index) => (
+          <frameinstance modelid="run-row" pos={[0, -index * 5.25]} />
+        ))}
       </frame>
     </WidgetFrame>
   );
