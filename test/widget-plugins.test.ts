@@ -5,7 +5,7 @@ import { resetTrailingWhite } from "../plugins/map-info/src/names";
 import { formatRecordTime } from "../plugins/records-info/src/time";
 import { sortRoundEntries } from "../plugins/live-round/src";
 import { FINISHED, sortActiveRuns } from "../plugins/ta-active-runs/src";
-import { rankLeaderboard } from "../plugins/ta-leaderboard/src";
+import { rankLeaderboard } from "../plugins/ta-leaderboard/src/names";
 import {
   createHarness,
   firstPartyPackage,
@@ -86,12 +86,18 @@ describe("ta-leaderboard", () => {
     await h.script("Trackmania.Event.WayPoint", finish("p1", 51000));
     await h.clock.advance(100);
 
-    expect(
-      h.session.widgetJson(
-        page("ta-leaderboard", "ta-leaderboard-widget-update"),
-        "recordsJson",
-      ),
-    ).toEqual([{ rank: 1, login: "p1", name: "Nick p1", time: 50000 }]);
+    const update = h.session.lastManialink(
+      page("ta-leaderboard", "ta-leaderboard-widget-update"),
+    );
+    expect(update).toContain('login = "p1"');
+    expect(update).toContain('name = "Nick p1"');
+    expect(update).toContain('timeText = "50.000"');
+    expect(update).toContain("rank = 1");
+    const widget = h.session.lastManialink(
+      page("ta-leaderboard", "ta-leaderboard-widget"),
+    );
+    expect(widget).toContain('text="Leaderboard"');
+    expect(widget).toContain('size="55 42"');
   });
 });
 
