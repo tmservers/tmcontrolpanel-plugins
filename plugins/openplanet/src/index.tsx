@@ -4,7 +4,21 @@ import {
   type PluginContext,
   type Widget,
   type Window,
+  type WidgetRenderProps,
 } from "@tmcontrolpanel/plugin-sdk";
+import {
+  Label,
+  Page,
+  Panel,
+  ScriptPrelude,
+  Table,
+  WidgetFrame,
+  WindowFrame,
+  kit,
+} from "@tmcontrolpanel/plugin-sdk/ui";
+import { Manialink } from "maniatsx";
+import { client, ml, Publish, type Integer } from "maniatsx/client";
+import { TextLib } from "maniatsx/maniascript";
 import { HELP_WIDTH, helpData } from "./help";
 import {
   checkRules,
@@ -48,6 +62,233 @@ const ICON = "https://plugins.tmcontrolpanel.com/packages/openplanet/icon.png";
 const MIN_CHECK_GAP_MS = 1000;
 // Rows per page that fit the 75-unit window below the summary
 const PAGE_SIZE = 13;
+interface DetectorSettings {
+  // 0 checks only when the page loads
+  interval: Integer;
+  // The host's prefix for this plugin's actions
+  actionPrefix: string;
+}
+
+// Written by the detector's update page
+const settings = client.shared<DetectorSettings>("detector", {
+  interval: 0,
+  actionPrefix: "",
+});
+const lastInfo = client.state<string>("");
+const lastCheck = client.state<Integer>(0);
+
+// Reports System.ExtraTool_Info, which holds the Openplanet version and signature mode
+const sendInfo = client.fn((info: string): void => {
+  const prefix = settings.value.actionPrefix;
+  if (info === "") ml.TriggerPageAction(prefix + "check");
+  else ml.TriggerPageAction(prefix + "check-" + TextLib.URLEncode(info));
+});
+
+function DetectorBehavior() {
+  client.onInit(() => {
+    lastInfo.value = ml.System!.ExtraTool_Info;
+    lastCheck.value = ml.Now;
+    sendInfo(lastInfo.value);
+  });
+  client.onFrame(() => {
+    if (
+      settings.value.interval > 0 &&
+      ml.Now - lastCheck.value >= settings.value.interval
+    ) {
+      lastCheck.value = ml.Now;
+      if (ml.System!.ExtraTool_Info !== lastInfo.value) {
+        lastInfo.value = ml.System!.ExtraTool_Info;
+        sendInfo(lastInfo.value);
+      }
+    }
+  });
+  return null;
+}
+
+// No visible controls: the page only runs the check
+function Detector(props: WidgetRenderProps) {
+  return (
+    <WidgetFrame {...props}>
+      <DetectorBehavior />
+    </WidgetFrame>
+  );
+}
+
+function DetectorUpdate(props: WidgetRenderProps) {
+  return (
+    <Manialink id={props.id}>
+      <Publish to={settings} value={props.data as DetectorSettings} />
+    </Manialink>
+  );
+}
+
+function HelpComponent(props: WidgetRenderProps) {
+  const data = props.data as ReturnType<typeof helpData>["data"];
+  return (
+    <Page id={props.id}>
+      <ScriptPrelude />
+      <WindowFrame
+        id={props.id}
+        title="Openplanet check"
+        size={[props.size.x, props.size.y]}
+      >
+        <Label
+          tone="contentText"
+          font="title"
+          pos={[props.size.x / 2, -4]}
+          size={[props.size.x - 8, 5]}
+          text={data.headline}
+          halign="center"
+          valign="center2"
+          textsize={2}
+        />
+        {data.detail ? (
+          <Label
+            tone="contentText"
+            font="body"
+            pos={[props.size.x / 2, -9]}
+            size={[props.size.x - 8, 4]}
+            text={data.detail}
+            halign="center"
+            valign="center2"
+            textsize={1}
+          />
+        ) : null}
+        {data.rules ? (
+          <Label
+            tone="contentTextMuted"
+            font="body"
+            pos={[props.size.x / 2, -13]}
+            size={[props.size.x - 8, 4]}
+            text={data.rules}
+            halign="center"
+            valign="center2"
+            textsize={0.9}
+          />
+        ) : null}
+        {data.sections.map((section) => (
+          <frame pos={[4, section.y]} size={[props.size.x - 8, section.height]}>
+            <Panel
+              tone="contentAlt"
+              size={[props.size.x - 8, section.height]}
+            />
+            <Panel tone="surface" size={[0.6, section.height]} />
+            <Label
+              tone="contentText"
+              font="title"
+              pos={[3, -3.5]}
+              size={[props.size.x - 14, 4]}
+              text={section.question}
+              valign="center2"
+              textsize={1.1}
+            />
+            {section.steps.map((step) => (
+              <>
+                <Label
+                  tone="contentTextMuted"
+                  font="title"
+                  pos={[3, step.y]}
+                  size={[4, 4]}
+                  text={`${step.number}.`}
+                  valign="center2"
+                  textsize={1}
+                />
+                <Label
+                  tone="contentText"
+                  font="body"
+                  pos={[7, step.y]}
+                  size={[props.size.x - 18, 4]}
+                  text={step.text}
+                  valign="center2"
+                  textsize={1}
+                />
+              </>
+            ))}
+          </frame>
+        ))}
+        {data.footer.map((line) => (
+          <Label
+            tone="contentTextMuted"
+            font="body"
+            pos={[props.size.x / 2, line.y]}
+            size={[props.size.x - 8, 4]}
+            text={line.text}
+            halign="center"
+            valign="center2"
+            textsize={0.9}
+          />
+        ))}
+      </WindowFrame>
+    </Page>
+  );
+}
+interface SignaturesActions {
+  prev: string;
+  next: string;
+}
+
+const ALERT = "F00";
+
+function SignaturesComponent(
+  props: WidgetRenderProps & { actions: SignaturesActions },
+) {
+  const data = props.data as ReturnType<OpenplanetPlugin["windowData"]>;
+  const { color } = kit.useTokens();
+  return (
+    <Page id={props.id}>
+      <ScriptPrelude />
+      <WindowFrame id={props.id} title={props.title} size={[120, 75]}>
+        <frame pos={[2, -2]} size={[116, 71]}>
+          {data.stats.map((stat, i) => (
+            <frame pos={[i * 26, 0]} size={[24, 7]}>
+              <Panel tone="contentAlt" size={[24, 7]} />
+              <quad
+                size={[0.6, 7]}
+                bgcolor={stat.alert ? ALERT : color.surface}
+              />
+              <Label
+                tone="contentTextMuted"
+                font="title"
+                pos={[2.5, -2.2]}
+                size={[20, 3]}
+                text={stat.label}
+                valign="center2"
+                textsize={0.7}
+              />
+              <label
+                pos={[2.5, -5]}
+                size={[20, 4]}
+                text={String(stat.value)}
+                valign="center2"
+                textsize={1.6}
+                textfont="GameFontSemiBold"
+                textcolor={stat.alert ? ALERT : color.contentText}
+              />
+            </frame>
+          ))}
+          {data.rules.map((rule, i) => (
+            <Label
+              tone="contentTextMuted"
+              font="body"
+              pos={[116, -2 - i * 3]}
+              size={[38, 3]}
+              text={rule}
+              halign="right"
+              valign="center2"
+              textsize={0.7}
+            />
+          ))}
+          <Table
+            table={data.table}
+            pos={[0, -9]}
+            prevAction={props.actions.prev}
+            nextAction={props.actions.next}
+          />
+        </frame>
+      </WindowFrame>
+    </Page>
+  );
+}
 
 const STATUS_TEXT: Record<Violation, string> = {
   openplanet: "Openplanet not allowed",
@@ -93,9 +334,14 @@ class OpenplanetPlugin {
   private readonly windows = new Map<string, Window>();
   private readonly pages = new Map<string, number>();
   private readonly helpWindows = new Map<string, Window>();
+  private readonly tableActions: SignaturesActions;
   private detector: Widget | null = null;
 
   constructor(private readonly ctx: PluginContext<Config>) {
+    this.tableActions = {
+      prev: ctx.ui.action("page-prev").name,
+      next: ctx.ui.action("page-next").name,
+    };
     // The detector posts System.ExtraTool_Info; an empty value comes in as plain "check"
     ctx.action("check", (answer) => this.onCheck(answer.login, ""));
     ctx.action("check-{info}", (answer, params) =>
@@ -140,12 +386,13 @@ class OpenplanetPlugin {
   private showDetector() {
     this.detector ??= this.ctx.ui.widget({
       id: "detector",
-      template: "widgets/detector",
-      withUpdate: false,
+      component: Detector,
+      updateComponent: DetectorUpdate,
       position: { x: 0, y: 0 },
     });
     this.detector.setData({
       interval: Math.max(0, Math.round(this.config().checkInterval)) * 1000,
+      actionPrefix: this.ctx.ui.actionPrefix(),
     });
     this.detector.display();
   }
@@ -303,11 +550,10 @@ class OpenplanetPlugin {
     if (!window) {
       window = this.ctx.ui.window({
         id: "help",
-        template: "windows/help",
+        component: HelpComponent,
         title: "Openplanet check",
         login,
         size,
-        withUpdate: false,
         data,
         onClose: () => this.helpWindows.delete(login),
       });
@@ -329,11 +575,12 @@ class OpenplanetPlugin {
     if (this.windows.has(login)) return;
     const window = this.ctx.ui.window({
       id: "signatures",
-      template: "windows/signatures",
+      component: (props) => (
+        <SignaturesComponent {...props} actions={this.tableActions} />
+      ),
       title: "Openplanet signatures",
       login,
       size: { x: 120, y: 75 },
-      withUpdate: false,
       data: this.windowData(login),
       onClose: () => {
         this.windows.delete(login);
@@ -359,7 +606,8 @@ class OpenplanetPlugin {
     window.display();
   }
 
-  private windowData(login: string) {
+  // Public so the window component can type its data
+  windowData(login: string) {
     const config = this.config();
     const players = [...this.players.values()].sort(
       (a, b) =>
@@ -405,6 +653,15 @@ class OpenplanetPlugin {
     ];
 
     return {
+      rows: players
+        .slice((table.page - 1) * PAGE_SIZE, table.page * PAGE_SIZE)
+        .map((p) => ({
+          player: p.nickName,
+          openplanet: p.info.hasOpenplanet ? "" : "",
+          version: p.info.version || "-",
+          signature: p.info.signature || "-",
+          status: p.violation ? STATUS_TEXT[p.violation] : "OK",
+        })),
       table,
       rules: [allowed, enforcement.filter(Boolean).join("  ·  ")],
       stats: [
