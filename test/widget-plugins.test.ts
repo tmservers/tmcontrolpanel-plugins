@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import slugid from "slugid";
 import { isValidEcmApiKey } from "../plugins/ecm/src";
 import { resetTrailingWhite } from "../plugins/map-info/src/names";
+import { formatRecordTime } from "../plugins/records-info/src/time";
 import { sortRoundEntries } from "../plugins/live-round/src";
 import { FINISHED, sortActiveRuns } from "../plugins/ta-active-runs/src";
 import { rankLeaderboard } from "../plugins/ta-leaderboard/src";
@@ -200,6 +201,13 @@ describe("admin", () => {
 });
 
 describe("records-info", () => {
+  it("formats record times", () => {
+    expect(formatRecordTime(0)).toBe("--:--.---");
+    expect(formatRecordTime(-1)).toBe("--:--.---");
+    expect(formatRecordTime(9999)).toBe("09.999");
+    expect(formatRecordTime(61007)).toBe("1:01.007");
+  });
+
   it("combines the local record and the world record", async () => {
     const h = await withPackage("records-info", {
       connect: false,
@@ -218,31 +226,30 @@ describe("records-info", () => {
     await h.runtime.start();
     await new Promise((r) => setImmediate(r));
 
-    expect(
-      h.session.widgetJson(
-        page("records-info", "records-info-widget-update"),
-        "recordsInfoJson",
-      ),
-    ).toEqual({
-      worldRecord: { time: 39000, nickName: "World Hero" },
-      localRecord: { time: 41000, nickName: "Local Hero" },
-    });
+    const update = h.session.lastManialink(
+      page("records-info", "records-info-widget-update"),
+    );
+    expect(update).toContain('nickName = "World Hero"');
+    expect(update).toContain('timeText = "39.000"');
+    expect(update).toContain('nickName = "Local Hero"');
+    expect(update).toContain('timeText = "41.000"');
+    expect(update).toContain('localRecordText = "SR"');
   });
 
   it("updates the local record live and ignores warm-up runs", async () => {
     const h = await withPackage("records-info", { players: [player("p1")] });
-    const records = () =>
-      h.session.widgetJson(
+    const update = () =>
+      h.session.lastManialink(
         page("records-info", "records-info-widget-update"),
-        "recordsInfoJson",
       );
     await h.script("Trackmania.WarmUp.Start");
     await h.script("Trackmania.Event.WayPoint", finish("p1", 30000));
-    expect(records().localRecord.time).toBe(0);
+    expect(update()).not.toContain('nickName = "Nick p1"');
 
     await h.script("Trackmania.WarmUp.End");
     await h.script("Trackmania.Event.WayPoint", finish("p1", 30000));
-    expect(records().localRecord).toEqual({ time: 30000, nickName: "Nick p1" });
+    expect(update()).toContain('timeText = "30.000"');
+    expect(update()).toContain('nickName = "Nick p1"');
   });
 
   it("emits new local and world records", async () => {
