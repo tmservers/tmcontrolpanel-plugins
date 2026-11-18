@@ -1,19 +1,14 @@
 {
   "slug": "team-score",
   "name": "Team Score",
-  "version": "1.0.0",
-  "sdk": 4,
+  "version": "2.0.0",
+  "sdk": 5,
   "description": "A head-to-head scoreboard for teams mode that highlights the team leading the round, with custom team names, colors and logos, and automatic team placement for configured players.",
   "author": "TMControlPanel",
   "license": "MIT",
   "repository": "https://github.com/MRegterschot/tmcontrolpanel-plugins",
-  "gamemodes": [
-    "teams"
-  ],
-  "capabilities": [
-    "ui",
-    "players:moderate"
-  ],
+  "gamemodes": ["teams"],
+  "capabilities": ["ui", "players:moderate"],
   "configSchema": {
     "type": "object",
     "properties": {
@@ -49,11 +44,7 @@
               "type": "string",
               "title": "Side",
               "description": "auto takes the first free side when one of its players joins.",
-              "enum": [
-                "auto",
-                "blue",
-                "red"
-              ],
+              "enum": ["auto", "blue", "red"],
               "default": "auto"
             },
             "players": {
@@ -68,10 +59,7 @@
               "addLabel": "Add Player"
             }
           },
-          "required": [
-            "name",
-            "players"
-          ]
+          "required": ["name", "players"]
         },
         "default": [],
         "addLabel": "Add Team",
@@ -115,18 +103,12 @@
       {
         "id": "teams",
         "title": "Teams",
-        "properties": [
-          "teams",
-          "autoAssign"
-        ]
+        "properties": ["teams", "autoAssign"]
       },
       {
         "id": "widget",
         "title": "Widget",
-        "properties": [
-          "showWidget",
-          "centerLogo"
-        ]
+        "properties": ["showWidget", "centerLogo"]
       }
     ]
   }
