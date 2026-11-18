@@ -3,7 +3,7 @@ import slugid from "slugid";
 import { isValidEcmApiKey } from "../plugins/ecm/src/validation";
 import { resetTrailingWhite } from "../plugins/map-info/src/names";
 import { formatRecordTime } from "../plugins/records-info/src/time";
-import { sortRoundEntries } from "../plugins/live-round/src";
+import { sortRoundEntries } from "../plugins/live-round/src/rounds";
 import { FINISHED, sortActiveRuns } from "../plugins/ta-active-runs/src/names";
 import { rankLeaderboard } from "../plugins/ta-leaderboard/src/names";
 import {
@@ -394,16 +394,23 @@ describe("live-round", () => {
     await h.script("Trackmania.Event.WayPoint", finish("a", 30000));
     await h.clock.advance(100);
 
-    const finishes = h.session.widgetJson(
+    const update = h.session.lastManialink(
       page("live-round", "live-round-widget-update"),
-      "finishesJson",
     );
-    expect(finishes.map((f: any) => [f.login, f.points])).toEqual([
-      ["a", 10],
-      ["b", 6],
-    ]);
-    expect(finishes[0].isLocalRecord).toBe(true);
-    expect(finishes[1].isLocalRecord).toBe(false);
+    expect(update!).toContain('login = "a"');
+    expect(update!).toContain("points = 10");
+    expect(update!).toContain('login = "b"');
+    expect(update!).toContain("points = 6");
+    expect(update!).toContain('name = "Nick a"');
+    expect(update!).toContain('name = "Nick b"');
+    expect(update!).toContain("rank = 1");
+    expect(update!).toContain('timeText = "30.000"');
+    expect(update!).toContain('timeText = "+01.000"');
+    expect(update!.indexOf('login = "a"')).toBeLessThan(
+      update!.indexOf('login = "b"'),
+    );
+    expect(update!).toContain("isLocalRecord = True");
+    expect(update!).toContain("isLocalRecord = False");
   });
 
   it("sends at most one widget update per 100 ms", async () => {
