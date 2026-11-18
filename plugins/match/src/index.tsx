@@ -7,52 +7,15 @@ import {
   type Widget,
   type Window,
 } from "@tmcontrolpanel/plugin-sdk";
-import { applySeedsOverride, PickBan, stringToPickAndBan, type PickBanMap } from "./pickban";
-
-// Settings as saved by the panel's match form
-export interface MatchConfig {
-  admins?: string[];
-  maps?: string[];
-  script?: string;
-  lobby?: { script?: string; map?: string };
-  pickAndBan?: {
-    type?: "player" | "team";
-    // e.g. "b:1,b:2,p:2,p:1,r"
-    order: string;
-    choosePosition: boolean;
-    // Seconds per turn before a random map is chosen; 0/unset disables it
-    timeout?: number;
-    // Start the match this many seconds after the pick and ban completes
-    autoStart?: boolean;
-    autoStartDelay?: number;
-    teams?: { seed: number; name?: string; players: string[] }[];
-    players?: { login: string; seed: number }[];
-  };
-}
-
-// Older forms stored the timeout as text and could leave fields out
-export function normalizeConfig(raw: unknown): MatchConfig {
-  const config = (raw && typeof raw === "object" ? raw : {}) as MatchConfig;
-  const pickAndBan = config.pickAndBan;
-  if (!pickAndBan) return config;
-
-  const timeout = Number(pickAndBan.timeout);
-  const autoStartDelay = Number(pickAndBan.autoStartDelay);
-  return {
-    ...config,
-    pickAndBan: {
-      ...pickAndBan,
-      order: pickAndBan.order ?? "",
-      choosePosition: pickAndBan.choosePosition ?? false,
-      timeout: Number.isFinite(timeout) && timeout > 0 ? timeout : undefined,
-      autoStart: pickAndBan.autoStart ?? false,
-      autoStartDelay:
-        Number.isFinite(autoStartDelay) && autoStartDelay > 0
-          ? autoStartDelay
-          : DEFAULT_AUTO_START_DELAY,
-    },
-  };
-}
+import {
+  applySeedsOverride,
+  PickBan,
+  stringToPickAndBan,
+  type PickBanMap,
+} from "./pickban";
+import { MatchWidget, MatchWidgetUpdate, ChoosePositionWindow } from "./ui";
+import { MatchConfig, normalizeConfig } from "./config";
+export { normalizeConfig } from "./config";
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -72,7 +35,11 @@ interface EventMap {
   filename: string;
 }
 
-const eventMap = ({ uid, name, filename }: PickBanMap): EventMap => ({ uid, name, filename });
+const eventMap = ({ uid, name, filename }: PickBanMap): EventMap => ({
+  uid,
+  name,
+  filename,
+});
 
 function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
@@ -93,7 +60,8 @@ export class MatchPlugin {
     this.maps = new MapList(ctx);
     this.widget = ctx.ui.widget({
       id: "match-pickban-widget",
-      template: "widgets/match/pickban",
+      component: MatchWidget,
+      updateComponent: MatchWidgetUpdate,
       position: { x: -60, y: 67 },
     });
 
@@ -144,7 +112,12 @@ export class MatchPlugin {
   }
 
   // The map and who took it; picks carry their final position
-  private emitSelection(action: "pick" | "ban", map: PickBanMap, by: string, timedOut = false) {
+  private emitSelection(
+    action: "pick" | "ban",
+    map: PickBanMap,
+    by: string,
+    timedOut = false,
+  ) {
     this.emit(action === "pick" ? "pickBanMapPicked" : "pickBanMapBanned", {
       map: eventMap(map),
       by,
@@ -155,17 +128,26 @@ export class MatchPlugin {
 
   // An empty login (automatic start) reports to everyone
   private tell(login: string, message: string) {
-    return login ? this.ctx.chat.sendTo(login, message) : this.ctx.chat.send(message);
+    return login
+      ? this.ctx.chat.sendTo(login, message)
+      : this.ctx.chat.send(message);
   }
 
   private authorize(login: string, message: string): boolean {
     if (this.config().admins?.includes(login)) return true;
-    void this.tell(login, message || "You are not authorized to perform this action");
+    void this.tell(
+      login,
+      message || "You are not authorized to perform this action",
+    );
     return false;
   }
 
   // Runs a step and reports failures to the admin instead of throwing
-  private async attempt(login: string, label: string, step: () => Promise<void>) {
+  private async attempt(
+    login: string,
+    label: string,
+    step: () => Promise<void>,
+  ) {
     try {
       await step();
       return true;
@@ -177,7 +159,8 @@ export class MatchPlugin {
   }
 
   private async onMatchStart(login: string) {
-    if (!this.authorize(login, "You are not authorized to start the match")) return;
+    if (!this.authorize(login, "You are not authorized to start the match"))
+      return;
     await this.startMatch(login);
   }
 
@@ -185,18 +168,28 @@ export class MatchPlugin {
     this.clearAutoStart();
 
     if (this.state === "pickban") {
-      return this.tell(login, "Pick and ban phase is still in progress, cannot start the match");
+      return this.tell(
+        login,
+        "Pick and ban phase is still in progress, cannot start the match",
+      );
     }
     if (this.state === "in_progress") {
-      return this.tell(login, "Match has already started, cannot start the match");
+      return this.tell(
+        login,
+        "Match has already started, cannot start the match",
+      );
     }
 
     const config = this.config();
     if (config?.script) {
-      const ok = await this.attempt(login, "Failed to load match script", async () => {
-        await this.ctx.server.setScriptName(config.script!);
-        await this.ctx.chat.send(`Loaded match script: ${config.script}`);
-      });
+      const ok = await this.attempt(
+        login,
+        "Failed to load match script",
+        async () => {
+          await this.ctx.server.setScriptName(config.script!);
+          await this.ctx.chat.send(`Loaded match script: ${config.script}`);
+        },
+      );
       if (!ok) return;
     }
 
@@ -210,7 +203,10 @@ export class MatchPlugin {
     if (this.state === "ready") {
       const picked = this.pickBan?.pickedFileNames() ?? [];
       if (picked.length === 0) {
-        return this.tell(login, "No maps have been picked, cannot start the match");
+        return this.tell(
+          login,
+          "No maps have been picked, cannot start the match",
+        );
       }
       const ok = await this.attempt(login, "Failed to set map list", () =>
         this.maps.replace(picked),
@@ -232,7 +228,8 @@ export class MatchPlugin {
   }
 
   private async onMatchStop(login: string) {
-    if (!this.authorize(login, "You are not authorized to stop the match")) return;
+    if (!this.authorize(login, "You are not authorized to stop the match"))
+      return;
 
     this.widget.destroy();
     this.clearTurnTimeout();
@@ -245,14 +242,17 @@ export class MatchPlugin {
 
   private async onPause(login: string, pause: boolean) {
     const verb = pause ? "pause" : "unpause";
-    if (!this.authorize(login, `You are not authorized to ${verb} the match`)) return;
+    if (!this.authorize(login, `You are not authorized to ${verb} the match`))
+      return;
 
     const { liveInfo } = this.ctx.live;
     if (!liveInfo.pauseAvailable) {
       return this.tell(login, "Pausing is not available in this mode");
     }
-    if (pause && liveInfo.isPaused) return this.tell(login, "Match is already paused");
-    if (!pause && !liveInfo.isPaused) return this.tell(login, "Match is not paused");
+    if (pause && liveInfo.isPaused)
+      return this.tell(login, "Match is already paused");
+    if (!pause && !liveInfo.isPaused)
+      return this.tell(login, "Match is not paused");
 
     await this.attempt(login, `Failed to ${verb} the match`, async () => {
       const player = this.ctx.live.findActivePlayer(login);
@@ -265,19 +265,32 @@ export class MatchPlugin {
   }
 
   private async onPickBanStart(login: string) {
-    if (!this.authorize(login, "You are not authorized to start the pick and ban phase")) return;
+    if (
+      !this.authorize(
+        login,
+        "You are not authorized to start the pick and ban phase",
+      )
+    )
+      return;
 
     if (this.state === "pickban") {
       return this.tell(login, "Pick and ban phase is already in progress");
     }
     if (this.state !== "not_started") {
-      return this.tell(login, "Match has already started, cannot start pick and ban phase");
+      return this.tell(
+        login,
+        "Match has already started, cannot start pick and ban phase",
+      );
     }
 
     const config = this.config().pickAndBan;
-    if (!config?.type) return this.tell(login, "Pick and ban configuration is not set");
+    if (!config?.type)
+      return this.tell(login, "Pick and ban configuration is not set");
 
-    const order = applySeedsOverride(stringToPickAndBan(config.order), this.seedsOverride);
+    const order = applySeedsOverride(
+      stringToPickAndBan(config.order),
+      this.seedsOverride,
+    );
     this.pickBan = new PickBan(
       {
         mode: config.type,
@@ -303,7 +316,9 @@ export class MatchPlugin {
     await this.ctx.chat.send(
       `Pick and ban phase started\n${order
         .map((step) =>
-          step.action !== "random" ? `${step.seed}: ${capitalize(step.action)}` : "Random",
+          step.action !== "random"
+            ? `${step.seed}: ${capitalize(step.action)}`
+            : "Random",
         )
         .join("\n")}`,
     );
@@ -313,7 +328,10 @@ export class MatchPlugin {
   }
 
   private async onLobby(login: string) {
-    if (!this.authorize(login, "You are not authorized to execute this command")) return;
+    if (
+      !this.authorize(login, "You are not authorized to execute this command")
+    )
+      return;
 
     if (this.state !== "not_started") {
       return this.tell(login, "Match has already started, cannot go to lobby");
@@ -328,7 +346,10 @@ export class MatchPlugin {
   private async onSetSeeds(args: string[], login: string) {
     const seeds = args.map((arg) => parseInt(arg, 10));
     if (seeds.some((seed) => isNaN(seed))) {
-      return this.tell(login, "Invalid seed(s) provided, please provide valid numbers");
+      return this.tell(
+        login,
+        "Invalid seed(s) provided, please provide valid numbers",
+      );
     }
 
     this.seedsOverride = seeds;
@@ -340,7 +361,10 @@ export class MatchPlugin {
     );
   }
 
-  private async onMapSelected(answer: ManialinkAnswer, uid: string | undefined) {
+  private async onMapSelected(
+    answer: ManialinkAnswer,
+    uid: string | undefined,
+  ) {
     const pickBan = this.pickBan;
     if (!uid || !pickBan) return;
 
@@ -350,7 +374,10 @@ export class MatchPlugin {
 
     switch (result.kind) {
       case "noTurn":
-        return this.tell(answer.login, "No pick and ban action is currently active");
+        return this.tell(
+          answer.login,
+          "No pick and ban action is currently active",
+        );
       case "mapNotFound":
         return this.tell(answer.login, "Selected map not found");
       case "notYourTurn":
@@ -371,7 +398,8 @@ export class MatchPlugin {
   private async onPositionChosen(answer: ManialinkAnswer, position: number) {
     const pickBan = this.pickBan;
     const turn = pickBan?.currentTurn;
-    if (!pickBan || !turn || turn.login !== answer.login || isNaN(position)) return;
+    if (!pickBan || !turn || turn.login !== answer.login || isNaN(position))
+      return;
 
     const map = pickBan.choosePositionFor(position);
     if (!map) return;
@@ -400,7 +428,9 @@ export class MatchPlugin {
       await this.ctx.sleep(RANDOM_STEP_DELAY_MS);
       const map = pickBan.pickRandom();
       if (!map) {
-        await this.ctx.chat.send("Failed to handle random pick and ban, no available maps left");
+        await this.ctx.chat.send(
+          "Failed to handle random pick and ban, no available maps left",
+        );
         return;
       }
       this.emitSelection("pick", map, "random");
@@ -417,7 +447,9 @@ export class MatchPlugin {
       if (this.state !== "pickban" || this.pickBan !== pickBan) return;
       this.state = "ready";
       this.emitCompleted(pickBan);
-      await this.ctx.chat.send("Pick and ban phase completed, match is ready to start");
+      await this.ctx.chat.send(
+        "Pick and ban phase completed, match is ready to start",
+      );
       this.widget.destroy();
       this.scheduleAutoStart();
     }
@@ -445,7 +477,11 @@ export class MatchPlugin {
     const picked = pickBan.maps
       .filter((map) => map.pickedBy)
       .sort((a, b) => a.index - b.index)
-      .map((map) => ({ ...eventMap(map), position: map.index, by: map.pickedBy }));
+      .map((map) => ({
+        ...eventMap(map),
+        position: map.index,
+        by: map.pickedBy,
+      }));
     const banned = pickBan.maps
       .filter((map) => map.bannedBy)
       .map((map) => ({ ...eventMap(map), by: map.bannedBy }));
@@ -479,11 +515,14 @@ export class MatchPlugin {
 
     const map = pickBan.resolveTimeout();
     if (!map) {
-      await this.ctx.chat.send("Failed to handle pick/ban timeout, no available maps left");
+      await this.ctx.chat.send(
+        "Failed to handle pick/ban timeout, no available maps left",
+      );
       return;
     }
 
-    if (turn.action !== "random") this.emitSelection(turn.action, map, turn.nickName, true);
+    if (turn.action !== "random")
+      this.emitSelection(turn.action, map, turn.nickName, true);
     await this.ctx.chat.send(
       `${turn.nickName || "The current player"} ran out of time, ${map.name} was randomly ${
         turn.action === "ban" ? "banned" : "picked"
@@ -497,9 +536,20 @@ export class MatchPlugin {
     if (!pickBan) return;
 
     this.widget.setData({
-      pickBanAction: "match-pickban-action",
-      mapInfosJson: JSON.stringify(pickBan.maps),
-      currentActionJson: pickBan.currentTurn ? JSON.stringify(pickBan.currentTurn) : undefined,
+      maps: pickBan.maps,
+      pickAction: this.ctx.ui.action("match-pickban-action").name,
+      currentAction: pickBan.currentTurn
+        ? {
+            ...pickBan.currentTurn,
+            timeoutSeconds: pickBan.currentTurn.timeoutSeconds ?? 0,
+          }
+        : {
+            action: "done",
+            login: "",
+            players: [],
+            nickName: "",
+            timeoutSeconds: 0,
+          },
     });
 
     if (display) {
@@ -515,7 +565,7 @@ export class MatchPlugin {
 
     const window = this.ctx.ui.window({
       id: "choose-position-window",
-      template: "windows/match/choose-position-window",
+      component: ChoosePositionWindow,
       login,
       title: "Choose Position",
       withUpdate: false,
@@ -523,7 +573,9 @@ export class MatchPlugin {
       data: {
         currentAction: pickBan.currentTurn,
         positionsAvailable: pickBan.positionsAvailable,
-        choosePositionAction: "match-pickban-choose-position",
+        choosePositionAction: this.ctx.ui.action(
+          "match-pickban-choose-position",
+        ).name,
       },
       onClose: () => this.positionWindows.delete(login),
     });
@@ -540,14 +592,16 @@ export class MatchPlugin {
   // Prefers map rows from the database; falls back to the server for unknown files
   private async loadMaps(fileNames: string[]): Promise<PickBanMap[]> {
     const fromDb = new Map(
-      (await this.ctx.maps.findByFileNames(fileNames)).map((map) => [map.fileName, map]),
+      (await this.ctx.maps.findByFileNames(fileNames)).map((map) => [
+        map.fileName,
+        map,
+      ]),
     );
     const missing = fileNames.filter((fileName) => !fromDb.has(fileName));
     const fromServer = new Map(
-      (missing.length > 0 ? await this.maps.getInfos(missing) : []).map((map) => [
-        map.FileName,
-        map,
-      ]),
+      (missing.length > 0 ? await this.maps.getInfos(missing) : []).map(
+        (map) => [map.FileName, map],
+      ),
     );
 
     const maps = fileNames.flatMap((fileName): PickBanMap[] => {
@@ -567,14 +621,24 @@ export class MatchPlugin {
       const server = fromServer.get(fileName);
       if (!server) return [];
       return [
-        { ...base, name: server.Name, author: server.Author, uid: server.UId, filename: server.FileName },
+        {
+          ...base,
+          name: server.Name,
+          author: server.Author,
+          uid: server.UId,
+          filename: server.FileName,
+        },
       ];
     });
 
     // Rows without a stored nickname still hold the author login
     const needName = fileNames.flatMap((fileName) => {
       const db = fromDb.get(fileName);
-      const login = db ? (db.authorNickname ? "" : db.author) : fromServer.get(fileName)?.Author;
+      const login = db
+        ? db.authorNickname
+          ? ""
+          : db.author
+        : fromServer.get(fileName)?.Author;
       return login ? [login] : [];
     });
     await this.resolveAuthorNames(maps, needName);
@@ -597,7 +661,9 @@ export class MatchPlugin {
         if (name) map.author = name;
       }
     } catch (error) {
-      this.ctx.log.error("Failed to fetch author names", { error: String(error) });
+      this.ctx.log.error("Failed to fetch author names", {
+        error: String(error),
+      });
     }
   }
 

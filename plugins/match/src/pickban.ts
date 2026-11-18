@@ -69,7 +69,9 @@ export function applySeedsOverride(
   if (seeds.length === 0) return order;
 
   const uniqueSeeds = [
-    ...new Set(order.flatMap((item) => (item.action === "random" ? [] : [item.seed]))),
+    ...new Set(
+      order.flatMap((item) => (item.action === "random" ? [] : [item.seed])),
+    ),
   ].sort((a, b) => a - b);
 
   const replacements = new Map<number, number>();
@@ -130,7 +132,9 @@ export class PickBan {
 
   // Final map list in position order
   pickedFileNames(): string[] {
-    return [...this.picked.entries()].sort(([a], [b]) => a - b).map(([, file]) => file);
+    return [...this.picked.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([, file]) => file);
   }
 
   advance(): PickBanTurn | null {
@@ -144,8 +148,10 @@ export class PickBan {
     const turn = this.turn;
     if (!turn) return { kind: "noTurn" };
 
-    if (this.mode === "player" && turn.login !== login) return { kind: "notYourTurn" };
-    if (this.mode === "team" && !turn.players.includes(login)) return { kind: "notYourTurn" };
+    if (this.mode === "player" && turn.login !== login)
+      return { kind: "notYourTurn" };
+    if (this.mode === "team" && !turn.players.includes(login))
+      return { kind: "notYourTurn" };
 
     const map = this.maps.find((m) => m.uid === uid);
     if (!map) return { kind: "mapNotFound" };
@@ -159,8 +165,12 @@ export class PickBan {
         }
       }
 
-      const votes = map.selectedBy.filter((l) => turn.players.includes(l)).length;
-      const activeTeamPlayers = activeLogins.filter((l) => turn.players.includes(l)).length;
+      const votes = map.selectedBy.filter((l) =>
+        turn.players.includes(l),
+      ).length;
+      const activeTeamPlayers = activeLogins.filter((l) =>
+        turn.players.includes(l),
+      ).length;
       if (votes <= activeTeamPlayers / 2) return { kind: "voteRegistered" };
     } else if (turn.action === "pick" && this.choosePosition) {
       this.pendingMapUid = map.uid;
@@ -243,7 +253,8 @@ export class PickBan {
 
     if (this.mode === "player") {
       const player = this.players.find((p) => p.seed === step.seed);
-      if (!player) return { action: step.action, login: "", players: [], nickName: "" };
+      if (!player)
+        return { action: step.action, login: "", players: [], nickName: "" };
       return {
         action: step.action,
         login: player.login,
@@ -253,7 +264,8 @@ export class PickBan {
     }
 
     const team = this.teams.find((t) => t.seed === step.seed);
-    if (!team) return { action: step.action, login: "", players: [], nickName: "" };
+    if (!team)
+      return { action: step.action, login: "", players: [], nickName: "" };
     return {
       action: step.action,
       login: "",
