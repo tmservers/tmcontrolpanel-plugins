@@ -88,13 +88,14 @@ function ClientBehavior() {
     frame.ScrollMax = vec2(0.0, maxY);
 
     for (const previous of previousRecords.value) {
+      // keyof can't search an array of structs, so count the row instead
+      let rowIndex: Integer = 0;
       for (const current of records.value) {
         if (
           current.login === previous.login &&
           current.time > 0 &&
           current.time < previous.time
         ) {
-          const rowIndex: Integer = records.value.indexOf(current);
           const row = frame.Controls[rowIndex + 1] as CMlFrame;
           const box = row.Controls[6] as CMlFrame;
           (box.Controls[1] as CMlLabel).SetText(
@@ -123,6 +124,7 @@ function ClientBehavior() {
           }
           break;
         }
+        rowIndex = rowIndex + 1;
       }
     }
     previousRecords.value = records.value;
