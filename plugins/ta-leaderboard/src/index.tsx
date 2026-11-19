@@ -9,8 +9,9 @@ import {
   type WidgetRenderProps,
 } from "@tmcontrolpanel/plugin-sdk";
 import { Label, Panel, WidgetFrame } from "@tmcontrolpanel/plugin-sdk/ui";
+import { slot } from "maniatsx/theme";
 import { Manialink } from "maniatsx";
-import { client, ml, Publish, type Integer } from "maniatsx/client";
+import { client, ml, Publish, type Integer, type Real } from "maniatsx/client";
 import {
   CAnimManager,
   CMlFrame,
@@ -53,7 +54,7 @@ const formatClientTime = client.fn((time: Integer): string => {
   return secondText + "." + msText;
 });
 
-function ClientBehavior() {
+function ClientBehavior({ rowStep = 5.25 }: { rowStep?: Real } = {}) {
   client.onInit(() => {
     const frame = recordsFrameRef.control;
     frame.ScrollActive = true;
@@ -83,7 +84,7 @@ function ClientBehavior() {
       row.Hide();
       index = index + 1;
     }
-    let maxY = MathLib.ToReal(records.value.length) * 5.25 - 42.0;
+    let maxY = MathLib.ToReal(records.value.length) * rowStep - 42.0;
     if (maxY < 0.0) maxY = 0.0;
     frame.ScrollMax = vec2(0.0, maxY);
 
@@ -133,7 +134,7 @@ function ClientBehavior() {
   return null;
 }
 
-function LeaderboardWidget(props: WidgetRenderProps) {
+function DefaultLeaderboardWidget(props: WidgetRenderProps) {
   return (
     <WidgetFrame {...props}>
       <ClientBehavior />
@@ -213,6 +214,88 @@ function LeaderboardWidget(props: WidgetRenderProps) {
     </WidgetFrame>
   );
 }
+
+function BroadcastLeaderboardWidget(props: WidgetRenderProps) {
+  return (
+    <WidgetFrame {...props}>
+      <ClientBehavior rowStep={5} />
+      <Panel tone="surface" size={[55, 5]} />
+      <Label
+        tone="text"
+        font="title"
+        pos={[1.5, -2.25]}
+        size={[53.5, 5]}
+        text="LEADERBOARD"
+        textprefix="$t"
+        valign="center"
+        textsize={0.9}
+      />
+      <framemodel id="record-row">
+        <Panel tone="surface" size={[5, 5]} />
+        <Panel tone="content" pos={[5, 0]} size={[50, 5]} />
+        <Label
+          tone="text"
+          font="title"
+          pos={[2.4, -2.25]}
+          size={[5, 5]}
+          text="0"
+          halign="center"
+          valign="center"
+          textsize={1.25}
+        />
+        <quad
+          pos={[6.25, -1]}
+          size={[4.5, 3]}
+          image="file://Media/Flags/WOR.dds"
+        />
+        <Label
+          tone="contentText"
+          font="body"
+          pos={[12, -2.25]}
+          size={[27, 5]}
+          text="-"
+          valign="center"
+          textsize={1.2}
+        />
+        <Label
+          tone="contentText"
+          font="title"
+          pos={[53, -2.25]}
+          size={[12.5, 5]}
+          text="--:--.---"
+          valign="center"
+          halign="right"
+          textsize={1}
+        />
+        <frame pos={[56, 0]} size={[14.5, 5]}>
+          <quad size={[14.5, 5]} bgcolor="22D" />
+          <Label
+            tone="text"
+            font="title"
+            pos={[7.25, -2.25]}
+            size={[14.5, 5]}
+            text="-00.000"
+            halign="center"
+            valign="center"
+            textsize={1}
+          />
+        </frame>
+      </framemodel>
+      <frame id="records" ref={recordsFrameRef} pos={[0, -5]} size={[55, 42]}>
+        <Panel tone="content" size={[55, 525]} opacity={0} scriptevents />
+        {Array.from({ length: 100 }, (_, index) => (
+          <frameinstance modelid="record-row" pos={[0, -index * 5]} />
+        ))}
+      </frame>
+    </WidgetFrame>
+  );
+}
+
+const LeaderboardWidget = slot<WidgetRenderProps>(
+  "ta-leaderboard/widget",
+  DefaultLeaderboardWidget,
+  { broadcast: BroadcastLeaderboardWidget },
+);
 
 function LeaderboardUpdate(props: WidgetRenderProps) {
   const data =

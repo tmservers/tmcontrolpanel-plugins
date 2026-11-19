@@ -7,6 +7,7 @@ import {
   kit,
 } from "@tmcontrolpanel/plugin-sdk/ui";
 import { Manialink } from "maniatsx";
+import { slot } from "maniatsx/theme";
 import { client, ml, Publish, type Integer, type Real } from "maniatsx/client";
 import {
   CAnimManager,
@@ -331,7 +332,7 @@ function BigNumber(props: { text: string }) {
   );
 }
 
-export function MatchWidget(props: WidgetRenderProps) {
+function MatchWidgetLayout(props: WidgetRenderProps, broadcast: boolean) {
   const tokens = kit.useTokens();
   const data = (props.data as { maps?: MapInfo[] } | undefined) ?? {};
   const backgroundY = 1159 - (data.maps?.length ?? 0) * 11.5 - 9;
@@ -342,22 +343,22 @@ export function MatchWidget(props: WidgetRenderProps) {
         <Panel tone="surface" size={[120, 10]} />
         <Label
           tone="text"
-          font="body"
+          font={broadcast ? "title" : "body"}
           pos={[5, -4.75]}
           size={[10, 10]}
-          text=""
+          text={broadcast ? "PICK & BAN" : ""}
           halign="center"
           valign="center"
-          textsize={2.5}
+          textsize={broadcast ? 0.9 : 2.5}
         />
         <Label
           tone="text"
           font="title"
-          pos={[12, -4.75]}
-          size={[94, 5]}
+          pos={broadcast ? [29, -4.75] : [12, -4.75]}
+          size={broadcast ? [80, 5] : [94, 5]}
           text="Marijn. is picking a map"
           valign="center"
-          textsize={1.75}
+          textsize={broadcast ? 1 : 1.75}
         />
         <Label
           tone="text"
@@ -370,6 +371,9 @@ export function MatchWidget(props: WidgetRenderProps) {
           textsize={1.75}
         />
         <Panel tone="content" pos={[0, -9]} size={[120, 1]} opacity={0} />
+        {broadcast && (
+          <quad pos={[0, 0]} size={[24, 10]} bgcolor="FFF" opacity={0.08} />
+        )}
       </frame>
       <framemodel id="map-info">
         <Panel tone="surface" size={[10, 10]} />
@@ -378,16 +382,16 @@ export function MatchWidget(props: WidgetRenderProps) {
         <Label
           tone="contentText"
           font="title"
-          pos={[12, -5.25]}
+          pos={broadcast ? [12, -5] : [12, -5.25]}
           size={[41, 5]}
           text="-"
-          textsize={1.75}
+          textsize={broadcast ? 1.2 : 1.75}
           valign="bottom"
         />
         <Label
           tone="contentText"
           font="body"
-          pos={[11.75, -5.5]}
+          pos={broadcast ? [12, -7.5] : [11.75, -5.5]}
           size={[41, 5]}
           text="-"
           textprefix="$i"
@@ -408,7 +412,7 @@ export function MatchWidget(props: WidgetRenderProps) {
           class="trigger"
           pos={[0, 0]}
           size={[100, 10]}
-          bgcolor={tokens.color.surface}
+          bgcolor={broadcast ? "000" : tokens.color.surface}
           opacity={0}
           scriptevents
           onClick={client.handler((event) => clickRow(event))}
@@ -429,6 +433,22 @@ export function MatchWidget(props: WidgetRenderProps) {
     </WidgetFrame>
   );
 }
+
+function DefaultMatchWidget(props: WidgetRenderProps) {
+  return MatchWidgetLayout(props, false);
+}
+
+function BroadcastMatchWidget(props: WidgetRenderProps) {
+  return MatchWidgetLayout(props, true);
+}
+
+export const MatchWidget = slot<WidgetRenderProps>(
+  "match/widget",
+  DefaultMatchWidget,
+  {
+    broadcast: BroadcastMatchWidget,
+  },
+);
 
 export function MatchWidgetUpdate(props: WidgetRenderProps) {
   const data =
@@ -455,7 +475,10 @@ export function MatchWidgetUpdate(props: WidgetRenderProps) {
   );
 }
 
-export function ChoosePositionWindow(props: WidgetRenderProps) {
+function ChoosePositionWindowLayout(
+  props: WidgetRenderProps,
+  broadcast: boolean,
+) {
   const data = (props.data as
     | { positionsAvailable?: number[]; choosePositionAction: string }
     | undefined) ?? { choosePositionAction: "" };
@@ -476,15 +499,25 @@ export function ChoosePositionWindow(props: WidgetRenderProps) {
         >
           {(data.positionsAvailable ?? []).map((position, index) => (
             <frame pos={[index * 12, 0]} size={[10, 10]}>
-              <Panel tone="surface" size={[10, 10]} />
+              <Panel tone={broadcast ? "content" : "surface"} size={[10, 10]} />
               <BigNumber text={String(position)} />
-              <Panel
-                tone="surface"
-                pos={[0, 0]}
-                size={[10, 10]}
-                opacity={0}
-                action={`${data.choosePositionAction}-${position}`}
-              />
+              {broadcast ? (
+                <quad
+                  pos={[0, 0]}
+                  size={[10, 10]}
+                  bgcolor="FFF"
+                  opacity={0.08}
+                  action={`${data.choosePositionAction}-${position}`}
+                />
+              ) : (
+                <Panel
+                  tone="surface"
+                  pos={[0, 0]}
+                  size={[10, 10]}
+                  opacity={0}
+                  action={`${data.choosePositionAction}-${position}`}
+                />
+              )}
             </frame>
           ))}
         </frame>
@@ -492,3 +525,17 @@ export function ChoosePositionWindow(props: WidgetRenderProps) {
     </Manialink>
   );
 }
+
+function DefaultChoosePositionWindow(props: WidgetRenderProps) {
+  return ChoosePositionWindowLayout(props, false);
+}
+
+function BroadcastChoosePositionWindow(props: WidgetRenderProps) {
+  return ChoosePositionWindowLayout(props, true);
+}
+
+export const ChoosePositionWindow = slot<WidgetRenderProps>(
+  "match/choose-position-window",
+  DefaultChoosePositionWindow,
+  { broadcast: BroadcastChoosePositionWindow },
+);

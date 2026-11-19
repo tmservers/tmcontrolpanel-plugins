@@ -14,7 +14,8 @@ import {
 } from "@tmcontrolpanel/plugin-sdk";
 import { Label, Panel, WidgetFrame, kit } from "@tmcontrolpanel/plugin-sdk/ui";
 import { Manialink } from "maniatsx";
-import { client, ml, Publish, type Integer } from "maniatsx/client";
+import { slot } from "maniatsx/theme";
+import { client, ml, Publish, type Integer, type Real } from "maniatsx/client";
 import {
   CMlFrame,
   CMlLabel,
@@ -79,7 +80,14 @@ const spectateRow = client.fn((event: CMlScriptEvent): void => {
   }
 });
 
-function ClientBehavior({ surfaceColor }: { surfaceColor: string }) {
+// rowStep: distance between rows; Broadcast joins them without the 0.25 gap
+function ClientBehavior({
+  surfaceColor,
+  rowStep = 5.25,
+}: {
+  surfaceColor: string;
+  rowStep?: Real;
+}) {
   client.onInit(() => {
     const frame = rankingsFrameRef.control;
     frame.ScrollActive = true;
@@ -115,7 +123,7 @@ function ClientBehavior({ surfaceColor }: { surfaceColor: string }) {
       row.Hide();
       index = index + 1;
     }
-    let maxY = MathLib.ToReal(rankings.value.length) * 5.25 - 42.0;
+    let maxY = MathLib.ToReal(rankings.value.length) * rowStep - 42.0;
     if (maxY < 0.0) maxY = 0.0;
     frame.ScrollMax = vec2(0.0, maxY);
   });
@@ -126,7 +134,7 @@ function ClientBehavior({ surfaceColor }: { surfaceColor: string }) {
 const mode = client.shared<string>("mode", "rounds");
 const pointsLimit = client.shared<Integer>("points_limit", -1);
 
-function LiveRankingWidget(props: WidgetRenderProps) {
+function DefaultLiveRankingWidget(props: WidgetRenderProps) {
   const surfaceColor = kit.useTokens().color.surface;
   return (
     <WidgetFrame {...props}>
@@ -203,6 +211,94 @@ function LiveRankingWidget(props: WidgetRenderProps) {
     </WidgetFrame>
   );
 }
+
+function BroadcastLiveRankingWidget(props: WidgetRenderProps) {
+  const surfaceColor = kit.useTokens().color.surface;
+  return (
+    <WidgetFrame {...props}>
+      <ClientBehavior surfaceColor={surfaceColor} rowStep={5} />
+      <Panel tone="surface" size={[55, 5]} />
+      <Label
+        tone="text"
+        font="title"
+        pos={[1.5, -2.25]}
+        size={[40, 5]}
+        text="Live Ranking"
+        textprefix="$t"
+        valign="center"
+        textsize={0.9}
+      />
+      <Label
+        tone="accent"
+        font="title"
+        pos={[53, -2.25]}
+        size={[7, 5]}
+        text="PTS"
+        halign="right"
+        valign="center"
+        textsize={0.75}
+      />
+      <framemodel id="ranking-row">
+        <Panel tone="surface" size={[5, 5]} />
+        <Panel tone="content" pos={[5, 0]} size={[50, 5]} />
+        <Label
+          tone="text"
+          font="title"
+          pos={[2.4, -2.25]}
+          size={[5, 5]}
+          text="0"
+          halign="center"
+          valign="center"
+          textsize={1.25}
+        />
+        <quad
+          pos={[6.25, -1]}
+          size={[4.5, 3]}
+          image="file://Media/Flags/WOR.dds"
+        />
+        <Label
+          tone="contentText"
+          font="body"
+          pos={[12, -2.25]}
+          size={[32, 5]}
+          text="-"
+          valign="center"
+          textsize={1.2}
+        />
+        <Label
+          tone="contentText"
+          font="title"
+          pos={[53, -2.25]}
+          size={[7.5, 5]}
+          text="0"
+          valign="center"
+          halign="right"
+          textsize={1}
+        />
+        <quad
+          class="trigger"
+          pos={[0, 0]}
+          z-index={-2}
+          size={[55, 5]}
+          opacity={0}
+          scriptevents
+          onClick={client.handler((event) => spectateRow(event))}
+        />
+      </framemodel>
+      <frame id="rankings" ref={rankingsFrameRef} pos={[0, -5]} size={[55, 42]}>
+        <Panel tone="content" size={[55, 500]} opacity={0} scriptevents />
+        {Array.from({ length: 100 }, (_, index) => (
+          <frameinstance modelid="ranking-row" pos={[0, -index * 5]} />
+        ))}
+      </frame>
+    </WidgetFrame>
+  );
+}
+const LiveRankingWidget = slot<WidgetRenderProps>(
+  "live-ranking/widget",
+  DefaultLiveRankingWidget,
+  { broadcast: BroadcastLiveRankingWidget },
+);
 
 function LiveRankingUpdate(props: WidgetRenderProps) {
   const data =

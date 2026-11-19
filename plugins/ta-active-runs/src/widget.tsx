@@ -1,7 +1,8 @@
 import type { WidgetRenderProps } from "@tmcontrolpanel/plugin-sdk";
 import { Label, Panel, WidgetFrame } from "@tmcontrolpanel/plugin-sdk/ui";
+import { slot } from "maniatsx/theme";
 import { Manialink } from "maniatsx";
-import { client, ml, Publish, type Integer } from "maniatsx/client";
+import { client, ml, Publish, type Integer, type Real } from "maniatsx/client";
 import {
   CMlFrame,
   CMlLabel,
@@ -31,7 +32,7 @@ const spectateRow = client.fn((event: CMlScriptEvent): void => {
   if (login !== "") ml.SetSpectateTarget(login);
 });
 
-function ActiveRunsClient() {
+function ActiveRunsClient({ rowStep = 5.25 }: { rowStep?: Real } = {}) {
   client.onInit(() => {
     const frame = runsFrameRef.control;
     frame.ScrollActive = true;
@@ -63,7 +64,7 @@ function ActiveRunsClient() {
       row.Hide();
       index = index + 1;
     }
-    let maxY = MathLib.ToReal(runs.value.length) * 5.25 - 42.0;
+    let maxY = MathLib.ToReal(runs.value.length) * rowStep - 42.0;
     if (maxY < 0.0) maxY = 0.0;
     frame.ScrollMax = vec2(0.0, maxY);
   });
@@ -71,7 +72,7 @@ function ActiveRunsClient() {
   return null;
 }
 
-function ActiveRunsWidget(props: WidgetRenderProps) {
+function DefaultActiveRunsWidget(props: WidgetRenderProps) {
   return (
     <WidgetFrame {...props}>
       <ActiveRunsClient />
@@ -147,6 +148,84 @@ function ActiveRunsWidget(props: WidgetRenderProps) {
     </WidgetFrame>
   );
 }
+
+function BroadcastActiveRunsWidget(props: WidgetRenderProps) {
+  return (
+    <WidgetFrame {...props}>
+      <ActiveRunsClient rowStep={5} />
+      <Panel tone="surface" size={[55, 5]} />
+      <Label
+        tone="text"
+        font="title"
+        pos={[1.5, -2.25]}
+        size={[53.5, 5]}
+        text="ACTIVE RUNS"
+        textprefix="$t"
+        valign="center"
+        textsize={0.9}
+      />
+      <framemodel id="run-row">
+        <Panel tone="content" size={[40.5, 5]} />
+        <quad pos={[40.5, 0]} size={[14.5, 5]} bgcolor="FFF" opacity={0.05} />
+        <quad
+          pos={[1.25, -1]}
+          size={[4.5, 3]}
+          image="file://Media/Flags/WOR.dds"
+        />
+        <Label
+          tone="contentText"
+          font="body"
+          pos={[7, -2.25]}
+          size={[30.5, 5]}
+          text="-"
+          valign="center"
+          textsize={1.2}
+        />
+        <Label
+          tone="contentText"
+          font="body"
+          pos={[39.75, -2.25]}
+          size={[5, 5]}
+          text="0"
+          halign="right"
+          valign="center"
+          textsize={1}
+        />
+        <Label
+          tone="contentText"
+          font="title"
+          pos={[54, -2.25]}
+          size={[12.5, 5]}
+          text="--:--.---"
+          halign="right"
+          valign="center"
+          textsize={1}
+        />
+        <quad
+          class="trigger"
+          pos={[0, 0]}
+          z-index={-2}
+          size={[55, 5]}
+          opacity={0}
+          scriptevents
+          onClick={client.handler((event) => spectateRow(event))}
+        />
+      </framemodel>
+      <frame id="active-runs" ref={runsFrameRef} pos={[0, -5]} size={[55, 42]}>
+        <Panel tone="content" size={[55, 525]} opacity={0} scriptevents />
+        {Array.from({ length: 100 }, (_, index) => (
+          <frameinstance modelid="run-row" pos={[0, -index * 5]} />
+        ))}
+      </frame>
+    </WidgetFrame>
+  );
+}
+
+const ActiveRunsWidget = slot<WidgetRenderProps>(
+  "ta-active-runs/widget",
+  DefaultActiveRunsWidget,
+  { broadcast: BroadcastActiveRunsWidget },
+);
 
 function ActiveRunsUpdate(props: WidgetRenderProps) {
   const data = (props.data as { runs?: ActiveRun[] } | undefined) ?? {};

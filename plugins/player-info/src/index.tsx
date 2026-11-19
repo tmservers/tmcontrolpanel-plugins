@@ -10,6 +10,7 @@ import {
 } from "@tmcontrolpanel/plugin-sdk";
 import { Label, Panel, WidgetFrame, kit } from "@tmcontrolpanel/plugin-sdk/ui";
 import { Manialink } from "maniatsx";
+import { slot } from "maniatsx/theme";
 import { client, ml, Publish, type Integer } from "maniatsx/client";
 import { CMlFrame, CMlQuad, TextLib } from "maniatsx/maniascript";
 
@@ -122,7 +123,7 @@ function BlackLabel(props: {
   );
 }
 
-function PlayerInfoWidget(props: WidgetRenderProps) {
+function DefaultPlayerInfoWidget(props: WidgetRenderProps) {
   return (
     <WidgetFrame {...props}>
       <ClientBehavior />
@@ -226,6 +227,147 @@ function PlayerInfoWidget(props: WidgetRenderProps) {
     </WidgetFrame>
   );
 }
+
+function BroadcastPlayerInfoWidget(props: WidgetRenderProps) {
+  return (
+    <WidgetFrame {...props}>
+      <ClientBehavior />
+      <frame
+        id="player-info-container"
+        ref={containerRef}
+        hidden
+        size={[55, 29.5]}
+      >
+        <frame id="player-name" size={[55, 7]}>
+          <Panel tone="surface" size={[55, 7]} />
+          <quad
+            ref={flagRef}
+            pos={[3.5, -3.5]}
+            size={[4.5, 3]}
+            image="file://Media/Flags/WOR.dds"
+            halign="center"
+            valign="center"
+          />
+          <Label
+            tone="text"
+            font="title"
+            pos={[8.5, -3.25]}
+            size={[47, 7]}
+            text={client.bind(() => displayedName.value)}
+            textprefix="$t"
+            valign="center"
+            textsize={2}
+          />
+        </frame>
+        <frame pos={[0, -7]} size={[55, 5]}>
+          <Panel tone="surface" size={[55, 5]} />
+          <Label
+            tone="text"
+            font="title"
+            pos={[1.5, -2.25]}
+            size={[52, 5]}
+            text="Player Info"
+            textprefix="$t"
+            valign="center"
+            textsize={0.9}
+          />
+        </frame>
+        <frame pos={[0, -12]} size={[55, 8]}>
+          <Panel tone="content" size={[55, 8]} />
+          <Label
+            tone="textMuted"
+            font="body"
+            pos={[4, -3.75]}
+            size={[8, 8]}
+            text="PB"
+            halign="center"
+            valign="center"
+            textsize={1.1}
+          />
+          <Label
+            tone="contentText"
+            font="title"
+            pos={[17.75, -3.75]}
+            size={[15.5, 8]}
+            text={client.bind(() => personalBestText.value)}
+            valign="center"
+            halign="center"
+            textsize={1.5}
+          />
+          <Label
+            tone="textMuted"
+            font="body"
+            pos={[31.5, -3.75]}
+            size={[8, 8]}
+            text="LR"
+            halign="center"
+            valign="center"
+            textsize={1.1}
+          />
+          <Label
+            tone="contentText"
+            font="title"
+            pos={[45.25, -3.75]}
+            size={[15.5, 8]}
+            text={client.bind(() => localRecordText.value)}
+            valign="center"
+            halign="center"
+            textsize={1.5}
+          />
+        </frame>
+        <frame pos={[0, -20]} size={[55, 8]}>
+          <Panel tone="content" size={[55, 8]} />
+          <Label
+            tone="textMuted"
+            font="body"
+            pos={[4, -3.75]}
+            size={[8, 8]}
+            text=""
+            halign="center"
+            valign="center"
+            textsize={1.1}
+          />
+          <Label
+            tone="contentText"
+            font="title"
+            pos={[17.75, -3.75]}
+            size={[15.5, 8]}
+            text={client.bind(() => deviceText.value)}
+            valign="center"
+            halign="center"
+            textsize={1.5}
+          />
+          <Label
+            tone="textMuted"
+            font="body"
+            pos={[31.5, -3.75]}
+            size={[8, 8]}
+            text=""
+            halign="center"
+            valign="center"
+            textsize={1.1}
+          />
+          <Label
+            tone="contentText"
+            font="title"
+            pos={[45.25, -3.75]}
+            size={[15.5, 8]}
+            text={client.bind(() => cameraText.value)}
+            valign="center"
+            halign="center"
+            textsize={1.5}
+          />
+        </frame>
+      </frame>
+    </WidgetFrame>
+  );
+}
+
+const PlayerInfoWidget = slot<WidgetRenderProps>(
+  "player-info/widget",
+  DefaultPlayerInfoWidget,
+  { broadcast: BroadcastPlayerInfoWidget },
+);
 
 function PlayerInfoUpdate(props: WidgetRenderProps) {
   const data = (props.data as { playerInfos?: PlayerCard[] } | undefined) ?? {};
