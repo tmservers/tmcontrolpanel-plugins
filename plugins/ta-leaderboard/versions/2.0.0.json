@@ -1,6 +1,6 @@
 {
   "url": "ta-leaderboard-2.0.0.zip",
-  "sha256": "70254b698c0e6add0dc408a8e3d3e5398ffb7ec15936fb5d3bcd143de6127c39",
-  "publishedAt": "2026-11-19T15:20:16.754Z",
+  "sha256": "caba35273b1a79ae292ecc135db6cdd40b425adce9f7ce9106e579b480eb03cb",
+  "publishedAt": "2026-11-19T15:23:52.476Z",
   "changelog": "Rebuilt as a TSX component that follows the server's preset theme. Needs a panel with TSX widget support."
 }

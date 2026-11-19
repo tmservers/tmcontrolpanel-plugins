@@ -1,6 +1,6 @@
 {
   "url": "ecm-2.0.0.zip",
-  "sha256": "8e06c23787b143479cfd82d358d71dbb109447f8453cd1b6187d2934aa104fd4",
-  "publishedAt": "2026-11-19T15:19:59.667Z",
+  "sha256": "b98c7a9dd49b76f5ef561a66b458a7419ca6f97652e061fb7145bd8b5f26b462",
+  "publishedAt": "2026-11-19T15:23:43.461Z",
   "changelog": "Rebuilt as a TSX component that follows the server's preset theme. Needs a panel with TSX widget support."
 }

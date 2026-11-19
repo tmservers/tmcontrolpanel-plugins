@@ -1,6 +1,6 @@
 {
   "url": "live-round-2.0.0.zip",
-  "sha256": "235975dc38b786650e55b8a40147e0642cd44af11381c1466bff03327acc70ac",
-  "publishedAt": "2026-11-19T15:20:09.726Z",
+  "sha256": "94f428482c752c7730ee9646fd16ce0935d55c6ed511e3cf537b3245d93bbdf9",
+  "publishedAt": "2026-11-19T15:23:45.416Z",
   "changelog": "Rebuilt as a TSX component that follows the server's preset theme. Needs a panel with TSX widget support."
 }

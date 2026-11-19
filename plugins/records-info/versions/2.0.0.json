@@ -1,6 +1,6 @@
 {
   "url": "records-info-2.0.0.zip",
-  "sha256": "ccf5ce0c06c8889f2efb597be52f020981ce06269e8eef20af970b8af5b5d2fa",
-  "publishedAt": "2026-11-19T15:20:14.764Z",
+  "sha256": "3be24d49d965f713a8c47e82795971aa7b5a4ec47fa7fcbf651473f0c0d291f2",
+  "publishedAt": "2026-11-19T15:23:50.495Z",
   "changelog": "Rebuilt as a TSX component that follows the server's preset theme. Needs a panel with TSX widget support."
 }
