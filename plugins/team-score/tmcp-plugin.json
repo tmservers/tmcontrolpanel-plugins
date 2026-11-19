@@ -1,7 +1,7 @@
 {
   "slug": "team-score",
   "name": "Team Score",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "sdk": 5,
   "description": "A head-to-head scoreboard for teams mode that highlights the team leading the round, with custom team names, colors and logos, and automatic team placement for configured players.",
   "author": "TMControlPanel",
