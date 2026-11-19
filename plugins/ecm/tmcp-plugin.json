@@ -1,7 +1,7 @@
 {
   "slug": "ecm",
   "name": "eCircuitMania",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "sdk": 5,
   "description": "Sends rounds and finishes to eCircuitMania while a match is being recorded.",
   "author": "TMControlPanel",
