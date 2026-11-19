@@ -423,7 +423,7 @@ export function MatchWidget(props: WidgetRenderProps) {
           scriptevents
         />
         {Array.from({ length: 100 }, (_, index) => (
-          <frameinstance modelid="map-info" pos={[5, 5 + index * -11.5]} />
+          <frameinstance modelid="map-info" pos={[5, -5 - index * 11.5]} />
         ))}
       </frame>
     </WidgetFrame>
