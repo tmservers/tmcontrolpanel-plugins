@@ -1,17 +1,13 @@
 {
   "slug": "player-info",
   "name": "Player Info",
-  "version": "1.2.1",
-  "sdk": 4,
+  "version": "2.0.0",
+  "sdk": 5,
   "description": "A widget that shows information about the spectated player. This includes their name, personal best and optionally device and camera.",
   "author": "TMControlPanel",
   "license": "MIT",
   "repository": "https://github.com/MRegterschot/tmcontrolpanel-plugins",
-  "capabilities": [
-    "ui",
-    "records:read",
-    "nadeo:read"
-  ],
+  "capabilities": ["ui", "records:read", "nadeo:read"],
   "configSchema": {
     "type": "object",
     "properties": {
@@ -31,13 +27,7 @@
             "device": {
               "type": "string",
               "title": "Device",
-              "enum": [
-                "Keyboard",
-                "Controller",
-                "Wheel",
-                "Mouse",
-                "Joystick"
-              ]
+              "enum": ["Keyboard", "Controller", "Wheel", "Mouse", "Joystick"]
             },
             "camera": {
               "type": "string",
@@ -52,9 +42,7 @@
               ]
             }
           },
-          "required": [
-            "login"
-          ]
+          "required": ["login"]
         },
         "default": [],
         "addLabel": "Add User"

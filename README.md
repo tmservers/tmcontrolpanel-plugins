@@ -89,7 +89,7 @@ metadata and immutable version archives. The panel repository contains the SDK,
 sandbox runtime, and management/settings UI.
 
 Clone the panel into `.controlpanel` (or link an existing checkout there), check out
-`release` (or another branch containing the SDK), and run:
+`dev` (or another branch containing the SDK), and run:
 
 ```bash
 cd .controlpanel
@@ -101,7 +101,7 @@ bun run check
 ```
 
 `setup` links this repository's tooling dependencies to the panel checkout. CI does
-the same with `TMCONTROLPANEL_REF`, which optionally selects the panel branch to test against (default: `release`).
+the same with `TMCONTROLPANEL_REF`, which optionally selects the panel branch to test against (default: `dev`).
 The registry owns plugin unit tests, sandbox behavior tests, and template snapshots;
 its tests use the generic sandbox harness from the panel checkout.
 

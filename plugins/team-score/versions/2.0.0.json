@@ -1,0 +1,6 @@
+{
+  "url": "team-score-2.0.0.zip",
+  "sha256": "e0cfcb9b87a1860d99129deed621699b93e8f62a0aef0d035ca42b9f45ed842c",
+  "publishedAt": "2026-11-19T15:23:53.487Z",
+  "changelog": "Rebuilt as a TSX component that follows the server's preset theme. Needs a panel with TSX widget support. The strip under a team's name now marks the team leading the current round, replacing the points-limit bars."
+}

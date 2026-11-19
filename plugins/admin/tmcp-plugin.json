@@ -1,19 +1,13 @@
 {
   "slug": "admin",
   "name": "Admin Help",
-  "version": "1.2.1",
-  "sdk": 4,
+  "version": "2.0.0",
+  "sdk": 5,
   "description": "A widget and admin command to notify a server admin. The command is '/admin <message>'.",
   "author": "TMControlPanel",
   "license": "MIT",
   "repository": "https://github.com/MRegterschot/tmcontrolpanel-plugins",
-  "commands": [
-    "admin"
-  ],
-  "capabilities": [
-    "ui",
-    "chat:send",
-    "notifications"
-  ],
+  "commands": ["admin"],
+  "capabilities": ["ui", "chat:send", "notifications"],
   "helpText": "This plugin allows players to notify admins when they need help.\nCommands:\n/admin <message> - Notifies admins that you need help"
 }

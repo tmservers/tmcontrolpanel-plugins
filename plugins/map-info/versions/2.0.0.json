@@ -1,0 +1,6 @@
+{
+  "url": "map-info-2.0.0.zip",
+  "sha256": "d8090e6577a0c4d59091e9ce8684126a71b40d4968bb79c13f221cecd84ea5a0",
+  "publishedAt": "2026-11-19T15:23:46.382Z",
+  "changelog": "Rebuilt as a TSX component that follows the server's preset theme. Needs a panel with TSX widget support."
+}

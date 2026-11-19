@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import slugid from "slugid";
-import { isValidEcmApiKey } from "../plugins/ecm/src";
-import { resetTrailingWhite } from "../plugins/map-info/src";
-import { sortRoundEntries } from "../plugins/live-round/src";
-import { FINISHED, sortActiveRuns } from "../plugins/ta-active-runs/src";
-import { rankLeaderboard } from "../plugins/ta-leaderboard/src";
+import { isValidEcmApiKey } from "../plugins/ecm/src/validation";
+import { resetTrailingWhite } from "../plugins/map-info/src/names";
+import { formatRecordTime } from "../plugins/records-info/src/time";
+import { sortRoundEntries } from "../plugins/live-round/src/rounds";
+import { FINISHED, sortActiveRuns } from "../plugins/ta-active-runs/src/names";
+import { rankLeaderboard } from "../plugins/ta-leaderboard/src/names";
 import {
   createHarness,
   firstPartyPackage,
@@ -85,12 +86,18 @@ describe("ta-leaderboard", () => {
     await h.script("Trackmania.Event.WayPoint", finish("p1", 51000));
     await h.clock.advance(100);
 
-    expect(
-      h.session.widgetJson(
-        page("ta-leaderboard", "ta-leaderboard-widget-update"),
-        "recordsJson",
-      ),
-    ).toEqual([{ rank: 1, login: "p1", name: "Nick p1", time: 50000 }]);
+    const update = h.session.lastManialink(
+      page("ta-leaderboard", "ta-leaderboard-widget-update"),
+    );
+    expect(update).toContain('login = "p1"');
+    expect(update).toContain('name = "Nick p1"');
+    expect(update).toContain('timeText = "50.000"');
+    expect(update).toContain("rank = 1");
+    const widget = h.session.lastManialink(
+      page("ta-leaderboard", "ta-leaderboard-widget"),
+    );
+    expect(widget).toContain('text="Leaderboard"');
+    expect(widget).toContain('size="55 42"');
   });
 });
 
@@ -116,27 +123,28 @@ describe("ta-active-runs", () => {
     });
     await h.clock.advance(100);
 
-    expect(
-      h.session.widgetJson(
-        page("ta-active-runs", "ta-active-runs-widget-update"),
-        "activeRunsJson",
-      ),
-    ).toEqual([{ login: "p1", name: "Nick p1", time: 1234, checkpoint: 1 }]);
+    const update = h.session.lastManialink(
+      page("ta-active-runs", "ta-active-runs-widget-update"),
+    );
+    expect(update).toContain('login = "p1"');
+    expect(update).toContain('name = "Nick p1"');
+    expect(update).toContain("time = 1234");
+    expect(update).toContain("checkpoint = 1");
   });
 });
 
 describe("map-info", () => {
   it("shows the current map", async () => {
     const h = await withPackage("map-info");
-    expect(
-      h.session.widgetJson(
-        page("map-info", "map-info-widget-update"),
-        "mapJson",
-      ),
-    ).toEqual({
-      name: "Map A",
-      author: "Author",
-    });
+    // The update page publishes the map; the widget binds its labels to it
+    const update = h.session.lastManialink(
+      page("map-info", "map-info-widget-update"),
+    );
+    expect(update).toContain('name = "Map A"');
+    expect(update).toContain('author = "Author"');
+    const widget = h.session.lastManialink(page("map-info", "map-info-widget"));
+    expect(widget).toContain('<frame id="widget" pos="100 85"');
+    expect(widget).toMatch(/Mtx_X_\w*map\w*info\w*map/);
   });
 
   it("resets a trailing white color change to the widget color", () => {
@@ -175,9 +183,11 @@ describe("admin", () => {
     expect(
       h.session.callsTo("ChatSendServerMessageToLogin").at(-1)?.params,
     ).toEqual(["Admins have been notified", "p1"]);
-    expect(
-      h.session.lastManialink(page("admin", "notify-admin-widget")),
-    ).toContain('action="admin:notify-admin-action"');
+    const renderedWidget = h.session.lastManialink(
+      page("admin", "notify-admin-widget"),
+    );
+    expect(renderedWidget).toContain("Notify Admin");
+    expect(renderedWidget).toContain('action="admin:notify-admin-action"');
   });
 
   it("emits helpRequested for other plugins", async () => {
@@ -200,6 +210,13 @@ describe("admin", () => {
 });
 
 describe("records-info", () => {
+  it("formats record times", () => {
+    expect(formatRecordTime(0)).toBe("--:--.---");
+    expect(formatRecordTime(-1)).toBe("--:--.---");
+    expect(formatRecordTime(9999)).toBe("09.999");
+    expect(formatRecordTime(61007)).toBe("1:01.007");
+  });
+
   it("combines the local record and the world record", async () => {
     const h = await withPackage("records-info", {
       connect: false,
@@ -218,31 +235,30 @@ describe("records-info", () => {
     await h.runtime.start();
     await new Promise((r) => setImmediate(r));
 
-    expect(
-      h.session.widgetJson(
-        page("records-info", "records-info-widget-update"),
-        "recordsInfoJson",
-      ),
-    ).toEqual({
-      worldRecord: { time: 39000, nickName: "World Hero" },
-      localRecord: { time: 41000, nickName: "Local Hero" },
-    });
+    const update = h.session.lastManialink(
+      page("records-info", "records-info-widget-update"),
+    );
+    expect(update).toContain('nickName = "World Hero"');
+    expect(update).toContain('timeText = "39.000"');
+    expect(update).toContain('nickName = "Local Hero"');
+    expect(update).toContain('timeText = "41.000"');
+    expect(update).toContain('localRecordText = "SR"');
   });
 
   it("updates the local record live and ignores warm-up runs", async () => {
     const h = await withPackage("records-info", { players: [player("p1")] });
-    const records = () =>
-      h.session.widgetJson(
+    const update = () =>
+      h.session.lastManialink(
         page("records-info", "records-info-widget-update"),
-        "recordsInfoJson",
       );
     await h.script("Trackmania.WarmUp.Start");
     await h.script("Trackmania.Event.WayPoint", finish("p1", 30000));
-    expect(records().localRecord.time).toBe(0);
+    expect(update()).not.toContain('nickName = "Nick p1"');
 
     await h.script("Trackmania.WarmUp.End");
     await h.script("Trackmania.Event.WayPoint", finish("p1", 30000));
-    expect(records().localRecord).toEqual({ time: 30000, nickName: "Nick p1" });
+    expect(update()).toContain('timeText = "30.000"');
+    expect(update()).toContain('nickName = "Nick p1"');
   });
 
   it("emits new local and world records", async () => {
@@ -299,21 +315,15 @@ describe("player-info", () => {
     await h.runtime.start();
     await new Promise((r) => setImmediate(r));
 
-    expect(
-      h.session.widgetJson(
-        page("player-info", "player-info-widget-update"),
-        "playerInfosJson",
-      ),
-    ).toEqual([
-      {
-        login,
-        name: `Nick ${login}`,
-        personalBest: 44000,
-        localRecord: 45000,
-        device: "Keyboard",
-        camera: "Unknown",
-      },
-    ]);
+    const update = h.session.lastManialink(
+      page("player-info", "player-info-widget-update"),
+    );
+    expect(update).toContain(`login = "${login}"`);
+    expect(update).toContain(`name = "Nick ${login}"`);
+    expect(update).toContain("personalBest = 44000");
+    expect(update).toContain("localRecord = 45000");
+    expect(update).toContain('device = "Keyboard"');
+    expect(update).toContain('camera = "Unknown"');
   });
 });
 
@@ -333,14 +343,25 @@ describe("live-ranking", () => {
       ],
     });
     await h.clock.advance(100);
-    const rankings = h.session.widgetJson(
+    const update = h.session.lastManialink(
       page("live-ranking", "live-ranking-widget-update"),
-      "rankingsJson",
     );
-    expect(rankings.map((r: any) => [r.login, r.rank, r.points])).toEqual([
-      ["b", 1, 20],
-      ["a", 2, 10],
-    ]);
+    expect(update).toContain('login = "b"');
+    expect(update).toContain('name = "B"');
+    expect(update).toContain("rank = 1");
+    expect(update).toContain("points = 20");
+    expect(update).toContain('login = "a"');
+    expect(update).toContain("rank = 2");
+    expect(update).toContain("points = 10");
+    // Ranked order: b before a
+    expect(update!.indexOf('login = "b"')).toBeLessThan(
+      update!.indexOf('login = "a"'),
+    );
+    const widget = h.session.lastManialink(
+      page("live-ranking", "live-ranking-widget"),
+    );
+    expect(widget).toContain('text="Live Ranking"');
+    expect(widget).toContain('size="55 42"');
   });
 });
 
@@ -375,16 +396,23 @@ describe("live-round", () => {
     await h.script("Trackmania.Event.WayPoint", finish("a", 30000));
     await h.clock.advance(100);
 
-    const finishes = h.session.widgetJson(
+    const update = h.session.lastManialink(
       page("live-round", "live-round-widget-update"),
-      "finishesJson",
     );
-    expect(finishes.map((f: any) => [f.login, f.points])).toEqual([
-      ["a", 10],
-      ["b", 6],
-    ]);
-    expect(finishes[0].isLocalRecord).toBe(true);
-    expect(finishes[1].isLocalRecord).toBe(false);
+    expect(update!).toContain('login = "a"');
+    expect(update!).toContain("points = 10");
+    expect(update!).toContain('login = "b"');
+    expect(update!).toContain("points = 6");
+    expect(update!).toContain('name = "Nick a"');
+    expect(update!).toContain('name = "Nick b"');
+    expect(update!).toContain("rank = 1");
+    expect(update!).toContain('timeText = "30.000"');
+    expect(update!).toContain('timeText = "+01.000"');
+    expect(update!.indexOf('login = "a"')).toBeLessThan(
+      update!.indexOf('login = "b"'),
+    );
+    expect(update!).toContain("isLocalRecord = True");
+    expect(update!).toContain("isLocalRecord = False");
   });
 
   it("sends at most one widget update per 100 ms", async () => {
@@ -463,11 +491,19 @@ describe("ecm", () => {
   });
 
   it("reports failed eCircuitMania requests to Sentry without the key", async () => {
-    const reports: { error: unknown; context: { tags: Record<string, string>; extra?: Record<string, unknown> } }[] = [];
+    const reports: {
+      error: unknown;
+      context: {
+        tags: Record<string, string>;
+        extra?: Record<string, unknown>;
+      };
+    }[] = [];
     const h = await withPackage("ecm", {
       players: [player("p1")],
       config: { apiKey: "m_secret", isRecording: true },
-      errors: { captureException: (error, context) => reports.push({ error, context }) },
+      errors: {
+        captureException: (error, context) => reports.push({ error, context }),
+      },
     });
     h.http.response = { status: 500, headers: {}, body: "boom" };
     await h.script("Trackmania.Event.WayPoint", finish("p1", 30000));
@@ -480,9 +516,18 @@ describe("ecm", () => {
       "eCircuitMania match-addRoundTime returned 500",
       "timeout",
     ]);
-    expect(reports[0].context.extra).toEqual({ endpoint: "match-addRoundTime", status: 500, body: "boom" });
-    expect(reports[1].context.extra).toEqual({ endpoint: "match-addRoundTime" });
-    expect(reports[0].context.tags).toMatchObject({ plugin: "ecm", source: "plugin" });
+    expect(reports[0].context.extra).toEqual({
+      endpoint: "match-addRoundTime",
+      status: 500,
+      body: "boom",
+    });
+    expect(reports[1].context.extra).toEqual({
+      endpoint: "match-addRoundTime",
+    });
+    expect(reports[0].context.tags).toMatchObject({
+      plugin: "ecm",
+      source: "plugin",
+    });
     expect(JSON.stringify(reports)).not.toContain("secret");
   });
 
@@ -508,6 +553,35 @@ describe("ecm", () => {
       apiKey: "match_token",
       isRecording: true,
     });
+  });
+
+  it("wires the window buttons and only shows the key to editors", async () => {
+    const h = await withPackage("ecm", {
+      players: [player("editor"), player("viewer")],
+      config: { editors: ["editor"], apiKey: "match_secret" },
+    });
+    await h.chat("viewer", "/ecm");
+    const viewerUpdate = h.session.lastManialink(
+      page("ecm", "ecm-window-update"),
+    );
+    expect(viewerUpdate).toContain("isEditor = False");
+    expect(viewerUpdate).not.toContain("match_secret");
+
+    const window = h.session.lastManialink(page("ecm", "ecm-window"));
+    for (const action of [
+      "ecm-toggle-recording",
+      "ecm-save-api-key",
+      "ecm-decrease-round-offset",
+      "ecm-increase-round-offset",
+    ]) {
+      expect(window).toMatch(new RegExp(`action="[^"]*${action}"`));
+    }
+    expect(window).toContain('name="ecm-api-key-entry"');
+
+    await h.chat("editor", "/ecm");
+    expect(h.session.lastManialink(page("ecm", "ecm-window-update"))).toContain(
+      "match_secret",
+    );
   });
 
   it("adds its button to the action group", async () => {

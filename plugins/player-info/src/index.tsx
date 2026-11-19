@@ -1,0 +1,395 @@
+import {
+  definePlugin,
+  loginToAccountId,
+  type PlayerInfo,
+  type PluginContext,
+  type SMapInfo,
+  type Waypoint,
+  type Widget,
+  type WidgetRenderProps,
+} from "@tmcontrolpanel/plugin-sdk";
+import { Label, Panel, WidgetFrame, kit } from "@tmcontrolpanel/plugin-sdk/ui";
+import { Manialink } from "maniatsx";
+import { client, ml, Publish, type Integer } from "maniatsx/client";
+import { CMlFrame, CMlQuad, TextLib } from "maniatsx/maniascript";
+
+interface Config {
+  playerInfos?: { login: string; device?: string; camera?: string }[];
+}
+
+interface PlayerCard {
+  login: string;
+  name: string;
+  personalBest: Integer;
+  localRecord: Integer;
+  device: string;
+  camera: string;
+}
+
+const EMPTY_CARDS: PlayerCard[] = [];
+const cards = client.shared<PlayerCard[]>("playerCards", EMPTY_CARDS);
+const currentLogin = client.state("");
+const currentName = client.state("");
+const viewerLogin = client.state("");
+const displayedName = client.state("");
+const personalBestText = client.state("--:--.---");
+const localRecordText = client.state("--:--.---");
+const deviceText = client.state("");
+const cameraText = client.state("");
+const containerRef = client.ref<CMlFrame>();
+const flagRef = client.ref<CMlQuad>();
+
+const formatClientTime = client.fn((time: Integer): string => {
+  if (time <= 0) return "--:--.---";
+  let seconds: Integer = time / 1000;
+  const minutes: Integer = seconds / 60;
+  const milliseconds: Integer = time - (time / 1000) * 1000;
+  seconds = seconds - minutes * 60;
+  let secondText = TextLib.ToText(seconds);
+  let millisecondText = TextLib.ToText(milliseconds);
+  if (seconds < 10) secondText = "0" + secondText;
+  if (milliseconds <= 0) millisecondText = "000";
+  else if (milliseconds < 10) millisecondText = "00" + millisecondText;
+  else if (milliseconds < 100) millisecondText = "0" + millisecondText;
+  if (minutes > 0)
+    return TextLib.ToText(minutes) + ":" + secondText + "." + millisecondText;
+  return secondText + "." + millisecondText;
+});
+
+const refreshCard = client.fn(() => {
+  const container = containerRef.control;
+  if (currentLogin.value === "" || currentLogin.value === viewerLogin.value) {
+    container.Hide();
+    return;
+  }
+  for (const card of cards.value) {
+    if (card.login !== currentLogin.value) continue;
+    flagRef.control.ChangeImageUrl(
+      "file://ZoneFlags/Login/" + currentLogin.value + "/country",
+    );
+    displayedName.value = currentName.value;
+    personalBestText.value = formatClientTime(card.personalBest);
+    localRecordText.value = formatClientTime(card.localRecord);
+    deviceText.value = card.device;
+    cameraText.value = card.camera;
+    container.Show();
+    return;
+  }
+  container.Hide();
+});
+
+function ClientBehavior() {
+  client.watch(cards, () => refreshCard());
+  client.onFrame(() => {
+    let nextViewer = "";
+    if (ml.InputPlayer !== null && ml.InputPlayer.User !== null)
+      nextViewer = ml.InputPlayer.User.Login;
+    let nextTarget = "";
+    let nextName = "";
+    if (ml.GUIPlayer !== null && ml.GUIPlayer.User !== null) {
+      nextTarget = ml.GUIPlayer.User.Login;
+      nextName = ml.GUIPlayer.User.Name;
+    }
+    if (
+      nextViewer !== viewerLogin.value ||
+      nextTarget !== currentLogin.value ||
+      nextName !== currentName.value
+    ) {
+      viewerLogin.value = nextViewer;
+      currentLogin.value = nextTarget;
+      currentName.value = nextName;
+      refreshCard();
+    }
+  });
+  return null;
+}
+
+function BlackLabel(props: {
+  pos: [number, number];
+  size: [number, number];
+  text: string;
+}) {
+  const tokens = kit.useTokens();
+  return (
+    <label
+      {...props}
+      halign="center"
+      valign="center"
+      textsize={1.5}
+      textcolor={tokens.color.text}
+      textfont="GameFontBlack"
+    />
+  );
+}
+
+function PlayerInfoWidget(props: WidgetRenderProps) {
+  return (
+    <WidgetFrame {...props}>
+      <ClientBehavior />
+      <frame
+        id="player-info-container"
+        ref={containerRef}
+        hidden
+        size={[55, 29.5]}
+      >
+        <frame id="player-name" size={[55, 7]}>
+          <Panel tone="surface" size={[7, 7]} />
+          <Panel tone="content" pos={[7, 0]} size={[48, 7]} />
+          <quad
+            ref={flagRef}
+            pos={[3.5, -3.5]}
+            size={[4.5, 3]}
+            image="file://Media/Flags/WOR.dds"
+            halign="center"
+            valign="center"
+          />
+          <Label
+            tone="contentText"
+            font="title"
+            pos={[8.5, -3.25]}
+            size={[47, 7]}
+            text={client.bind(() => displayedName.value)}
+            valign="center"
+            textsize={2}
+          />
+        </frame>
+        <frame pos={[0, -8]} size={[55, 5]}>
+          <Panel tone="surface" size={[55, 5]} />
+          <Label
+            tone="text"
+            font="title"
+            pos={[27.5, -2.25]}
+            size={[55, 5]}
+            text="Player Info"
+            halign="center"
+            valign="center"
+            textsize={1}
+          />
+        </frame>
+        <frame pos={[0, -13.25]} size={[55, 8]}>
+          <Panel tone="surface" size={[8, 8]} />
+          <Panel tone="content" pos={[8, 0]} size={[19.5, 8]} />
+          <BlackLabel pos={[4, -3.75]} size={[8, 8]} text="PB" />
+          <Label
+            tone="contentText"
+            font="title"
+            pos={[17.75, -3.75]}
+            size={[15.5, 8]}
+            text={client.bind(() => personalBestText.value)}
+            valign="center"
+            halign="center"
+            textsize={1.5}
+          />
+          <Panel tone="surface" pos={[27.5, 0]} size={[8, 8]} />
+          <Panel tone="content" pos={[35.5, 0]} size={[19.5, 8]} />
+          <BlackLabel pos={[31.5, -3.75]} size={[8, 8]} text="LR" />
+          <Label
+            tone="contentText"
+            font="title"
+            pos={[45.25, -3.75]}
+            size={[15.5, 8]}
+            text={client.bind(() => localRecordText.value)}
+            valign="center"
+            halign="center"
+            textsize={1.5}
+          />
+        </frame>
+        <frame pos={[0, -21.5]} size={[55, 8]}>
+          <Panel tone="surface" size={[8, 8]} />
+          <Panel tone="content" pos={[8, 0]} size={[19.5, 8]} />
+          <BlackLabel pos={[4, -3.75]} size={[8, 8]} text="" />
+          <Label
+            tone="contentText"
+            font="title"
+            pos={[17.75, -3.75]}
+            size={[15.5, 8]}
+            text={client.bind(() => deviceText.value)}
+            valign="center"
+            halign="center"
+            textsize={1.5}
+          />
+          <Panel tone="surface" pos={[27.5, 0]} size={[8, 8]} />
+          <Panel tone="content" pos={[35.5, 0]} size={[19.5, 8]} />
+          <BlackLabel pos={[31.5, -3.75]} size={[8, 8]} text="" />
+          <Label
+            tone="contentText"
+            font="title"
+            pos={[45.25, -3.75]}
+            size={[15.5, 8]}
+            text={client.bind(() => cameraText.value)}
+            valign="center"
+            halign="center"
+            textsize={1.5}
+          />
+        </frame>
+      </frame>
+    </WidgetFrame>
+  );
+}
+
+function PlayerInfoUpdate(props: WidgetRenderProps) {
+  const data = (props.data as { playerInfos?: PlayerCard[] } | undefined) ?? {};
+  const published = (data.playerInfos ?? []).map((card) => ({
+    ...card,
+    personalBest: card.personalBest as Integer,
+    localRecord: card.localRecord as Integer,
+  }));
+  return (
+    <Manialink id={props.id}>
+      <Publish to={cards} value={published} />
+    </Manialink>
+  );
+}
+
+class PlayerInfoPlugin {
+  private readonly widget: Widget;
+  private cards: Record<string, PlayerCard> = {};
+
+  constructor(private readonly ctx: PluginContext<Config>) {
+    this.widget = ctx.ui.widget({
+      id: "player-info-widget",
+      component: PlayerInfoWidget,
+      updateComponent: PlayerInfoUpdate,
+      position: { x: -156, y: -49 },
+    });
+    ctx.on("beginMap", () => this.refreshAll());
+    ctx.on("playerConnect", (player) => this.onPlayerConnect(player));
+    ctx.on("finish", (waypoint) => this.onFinish(waypoint));
+  }
+
+  async start() {
+    this.widget.display();
+    await this.refreshAll();
+  }
+
+  onConfigUpdate() {
+    for (const card of Object.values(this.cards)) {
+      Object.assign(card, this.setupFor(card.login));
+    }
+    this.render();
+  }
+
+  private setupFor(login: string): Pick<PlayerCard, "device" | "camera"> {
+    const configured = this.ctx
+      .config()
+      .playerInfos?.find((p) => p.login === login);
+    return {
+      device: configured?.device || "Unknown",
+      camera: configured?.camera || "Unknown",
+    };
+  }
+
+  private onFinish(waypoint: Waypoint) {
+    const card = this.cards[waypoint.login];
+    if (!card) return;
+    let changed = false;
+    if (!card.personalBest || waypoint.racetime < card.personalBest) {
+      card.personalBest = waypoint.racetime;
+      changed = true;
+    }
+    if (!card.localRecord || waypoint.racetime < card.localRecord) {
+      card.localRecord = waypoint.racetime;
+      changed = true;
+    }
+    if (changed) this.render();
+  }
+
+  private async onPlayerConnect(player: PlayerInfo) {
+    if (this.cards[player.login]) return;
+    const mapUid = this.ctx.live.activeMapUid;
+    const [localRecords, personalBests] = mapUid
+      ? await Promise.all([
+          this.localRecords(mapUid, [player.login]),
+          this.personalBests(mapUid, [player.login]),
+        ])
+      : [new Map<string, number>(), new Map<string, number>()];
+    this.cards[player.login] = {
+      login: player.login,
+      name: player.nickName,
+      localRecord: localRecords.get(player.login) ?? 0,
+      personalBest: personalBests.get(player.login) ?? 0,
+      ...this.setupFor(player.login),
+    };
+    this.render();
+  }
+
+  private async refreshAll() {
+    const players = this.ctx.live.activePlayers.filter(
+      (player) => !player.login.includes("fakeplayer"),
+    );
+    if (players.length === 0) {
+      this.cards = {};
+      this.render();
+      return;
+    }
+    const map = await this.ctx.gbx.call<SMapInfo>("GetCurrentMapInfo");
+    const logins = players.map((p) => p.login);
+    const [localRecords, personalBests] = await Promise.all([
+      this.localRecords(map.UId, logins),
+      this.personalBests(map.UId, logins),
+    ]);
+    this.cards = {};
+    for (const player of players) {
+      this.cards[player.login] = {
+        login: player.login,
+        name: player.nickName,
+        personalBest: personalBests.get(player.login) ?? 0,
+        localRecord: localRecords.get(player.login) ?? 0,
+        ...this.setupFor(player.login),
+      };
+    }
+    this.render();
+  }
+
+  private async localRecords(
+    mapUid: string,
+    logins: string[],
+  ): Promise<Map<string, number>> {
+    try {
+      const records = await this.ctx.records.forPlayers(mapUid, logins);
+      return new Map(
+        records.filter((r) => r.login).map((r) => [r.login!, r.time]),
+      );
+    } catch (error) {
+      this.ctx.log.error("Failed to fetch player records", {
+        error: String(error),
+      });
+      return new Map();
+    }
+  }
+
+  private async personalBests(
+    mapUid: string,
+    logins: string[],
+  ): Promise<Map<string, number>> {
+    const accounts = logins
+      .map((login) => [login, loginToAccountId(login)] as const)
+      .filter((entry): entry is readonly [string, string] => entry[1] !== null);
+    if (accounts.length === 0) return new Map();
+    try {
+      const byAccount = await this.ctx.nadeo.personalBests(
+        mapUid,
+        accounts.map(([, accountId]) => accountId),
+      );
+      return new Map(
+        accounts
+          .filter(([, accountId]) => accountId in byAccount)
+          .map(([login, accountId]) => [login, byAccount[accountId]]),
+      );
+    } catch (error) {
+      this.ctx.log.error("Failed to fetch personal bests", {
+        error: String(error),
+      });
+      return new Map();
+    }
+  }
+
+  private render() {
+    this.widget.setData({ playerInfos: Object.values(this.cards) });
+    this.widget.update();
+  }
+}
+
+export default definePlugin<Config>({
+  create: (ctx) => new PlayerInfoPlugin(ctx),
+});

@@ -1,7 +1,7 @@
 {
   "slug": "match",
   "name": "Match",
-  "version": "1.5.0",
+  "version": "2.0.0",
   "sdk": 5,
   "description": "Manages a match on the server: starting and stopping it, pausing, a pick and ban phase and a lobby.",
   "author": "TMControlPanel",
@@ -62,10 +62,7 @@
           "type": {
             "type": "string",
             "title": "Type",
-            "enum": [
-              "player",
-              "team"
-            ],
+            "enum": ["player", "team"],
             "default": "player"
           },
           "choosePosition": {
@@ -123,10 +120,7 @@
                   "title": "Seed"
                 }
               },
-              "required": [
-                "login",
-                "seed"
-              ]
+              "required": ["login", "seed"]
             },
             "default": [],
             "addLabel": "Add Player",
@@ -163,10 +157,7 @@
                   "addLabel": "Add Player"
                 }
               },
-              "required": [
-                "seed",
-                "players"
-              ]
+              "required": ["seed", "players"]
             },
             "default": [],
             "addLabel": "Add Team",
@@ -199,25 +190,17 @@
       {
         "id": "general",
         "title": "General",
-        "properties": [
-          "script",
-          "maps",
-          "admins"
-        ]
+        "properties": ["script", "maps", "admins"]
       },
       {
         "id": "pick-and-ban",
         "title": "Pick and Ban",
-        "properties": [
-          "pickAndBan"
-        ]
+        "properties": ["pickAndBan"]
       },
       {
         "id": "lobby",
         "title": "Lobby",
-        "properties": [
-          "lobby"
-        ]
+        "properties": ["lobby"]
       }
     ],
     "tmevents": {

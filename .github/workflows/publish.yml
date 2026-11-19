@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: tmservers/tmcontrolpanel
-          ref: ${{ vars.TMCONTROLPANEL_REF || 'release' }}
+          ref: ${{ vars.TMCONTROLPANEL_REF || 'dev' }}
           path: .controlpanel
 
       - uses: oven-sh/setup-bun@v2

@@ -6,7 +6,7 @@ import {
   roundPoints,
   teamDisplayName,
   type CustomTeam,
-} from "../plugins/team-score/src";
+} from "../plugins/team-score/src/score";
 import { createHarness, firstPartyPackage, player } from "./fakes/harness";
 
 const SCRIPT = "Trackmania/TM_Teams_Online.Script.txt";
@@ -29,7 +29,15 @@ async function withPackage(
   });
 }
 const view = (h: Awaited<ReturnType<typeof withPackage>>) =>
-  h.session.widgetJson<any>(PAGE, "stateJson");
+  h.session.lastManialink(PAGE) ?? "";
+const expectNamesInOrder = (xml: string, names: string[]) => {
+  let previous = -1;
+  for (const name of names) {
+    const index = xml.indexOf(`name = "${name}"`, previous + 1);
+    expect(index).toBeGreaterThan(previous);
+    previous = index;
+  }
+};
 const passed = (login: string, checkpoint: number, racetime: number) => ({
   ...finished(login, racetime),
   checkpointinrace: checkpoint,
@@ -152,66 +160,89 @@ describe("team-score plugin", () => {
     );
     expect(h.session.callsTo("ForcePlayerTeam")).toHaveLength(0);
     expect(h.session.sentManialinkIds()).toContain(PAGE);
-    expect(view(h).teams[1].name).toBe("Custom");
+    expectNamesInOrder(view(h), ["Team Blue", "Custom"]);
   });
 
   it("shows changed teams as soon as the config is saved", async () => {
-    const h = await withPackage([{ name: "Old", side: "blue", players: ["p1"] }], [player("p1", { TeamId: 0 })]);
+    const h = await withPackage(
+      [{ name: "Old", side: "blue", players: ["p1"] }],
+      [player("p1", { TeamId: 0 })],
+    );
     await h.clock.advance(300);
-    expect(view(h).teams[0].name).toBe("Old");
+    expect(view(h)).toContain('name = "Old"');
     const pages = h.session.sentManialinkIds().length;
     expect(h.session.sentManialinkIds()).toContain("plg.team-score.team-score");
 
     const record = h.servers.servers.get("server-1")!.plugins[0];
-    record.config = { ...config, teams: [{ name: "New", color: "0F0", side: "red", players: ["p1"] }] };
+    record.config = {
+      ...config,
+      teams: [{ name: "New", color: "0F0", side: "red", players: ["p1"] }],
+    };
     await h.runtime.refreshPlugins();
 
     const state = view(h);
-    expect(state.teams[1]).toMatchObject({ name: "New", color: "0F0" });
-    expect(state.teams[0].name).toBe("Team Blue");
-    expect(h.session.callsTo("ForcePlayerTeam").at(-1)?.params).toEqual(["p1", 1]);
+    expectNamesInOrder(state, ["Team Blue", "New"]);
+    expect(state).toContain('color = "0F0"');
+    expect(h.session.callsTo("ForcePlayerTeam").at(-1)?.params).toEqual([
+      "p1",
+      1,
+    ]);
     // Only the data page is resent, not the whole widget
-    expect(h.session.sentManialinkIds().slice(pages)).not.toContain("plg.team-score.team-score");
+    expect(h.session.sentManialinkIds().slice(pages)).not.toContain(
+      "plg.team-score.team-score",
+    );
   });
 
   it("sends the center logo only when one is configured", async () => {
     const plain = await withPackage();
     await plain.clock.advance(300);
-    expect(view(plain).centerLogo).toBe("");
+    expect(view(plain)).toContain('centerLogo = ""');
 
-    const withLogo = await withPackage([], [player("p1")], { centerLogo: " https://example.com/vs.png " });
+    const withLogo = await withPackage([], [player("p1")], {
+      centerLogo: " https://example.com/vs.png ",
+    });
     await withLogo.clock.advance(300);
-    expect(view(withLogo).centerLogo).toBe("https://example.com/vs.png");
+    expect(view(withLogo)).toContain(
+      'centerLogo = "https://example.com/vs.png"',
+    );
   });
 
   it("flags warm-up so the status strip can turn orange", async () => {
     const h = await withPackage();
     await h.clock.advance(300);
-    expect(view(h).warmUp).toBe(false);
+    expect(view(h)).toContain("warmUp = False");
 
     await h.script("Trackmania.WarmUp.Start");
     await h.clock.advance(300);
-    expect(view(h)).toMatchObject({ warmUp: true, status: "Warm up" });
+    expect(view(h)).toContain('status = "Warm up"');
+    expect(view(h)).toContain("warmUp = True");
 
     await h.script("Trackmania.WarmUp.End");
     await h.clock.advance(300);
-    expect(view(h).warmUp).toBe(false);
+    expect(view(h)).toContain("warmUp = False");
   });
 
   it("re-projects the round leader on every checkpoint", async () => {
-    const h = await withPackage([], [player("p1", { TeamId: 0 }), player("p2", { TeamId: 1 })]);
+    const h = await withPackage(
+      [],
+      [player("p1", { TeamId: 0 }), player("p2", { TeamId: 1 })],
+    );
     await h.script("Trackmania.Event.WayPoint", passed("p1", 0, 1000));
     await h.script("Trackmania.Event.WayPoint", passed("p2", 0, 1100));
     await h.clock.advance(300);
-    expect(view(h).leader).toBe(0);
+    expect(view(h)).toContain("leader = 0");
 
     await h.script("Trackmania.Event.WayPoint", passed("p2", 1, 1900));
     await h.clock.advance(300);
-    expect(view(h).leader).toBe(1);
+    expect(view(h)).toContain("leader = 1");
 
-    await h.script("Trackmania.Event.GiveUp", { time: 0, login: "p2", accountid: "p2" });
+    await h.script("Trackmania.Event.GiveUp", {
+      time: 0,
+      login: "p2",
+      accountid: "p2",
+    });
     await h.clock.advance(300);
-    expect(view(h).leader).toBe(0);
+    expect(view(h)).toContain("leader = 0");
   });
 
   it("updates round and match points, then resets at the next round", async () => {
@@ -221,8 +252,7 @@ describe("team-score plugin", () => {
     );
     await h.script("Trackmania.Event.WayPoint", finished("p1", 100));
     await h.clock.advance(300);
-    expect(view(h).leader).toBe(0);
-    expect(view(h).teams[0].roundPoints).toBeGreaterThan(0);
+    expect(view(h)).toContain("leader = 0");
     await h.script("Trackmania.Scores", {
       useteams: true,
       section: "EndRound",
@@ -232,10 +262,16 @@ describe("team-score plugin", () => {
       ],
     });
     await h.clock.advance(300);
-    expect(view(h).teams.map((t: any) => t.points)).toEqual([12, 8]);
+    expect(view(h)).toMatch(/name = "A", color = "", logo = "", points = 12/);
+    expect(view(h)).toMatch(
+      /name = "Team Red", color = "", logo = "", points = 8/,
+    );
     await h.script("Maniaplanet.StartRound_Start", {});
     await h.clock.advance(300);
-    expect(view(h).leader).toBe(-1);
-    expect(view(h).teams.map((t: any) => t.roundPoints)).toEqual([0, 0]);
+    expect(view(h)).toContain("leader = -1");
+    expect(view(h)).toMatch(/name = "A", color = "", logo = "", points = 12/);
+    expect(view(h)).toMatch(
+      /name = "Team Red", color = "", logo = "", points = 8/,
+    );
   });
 });
