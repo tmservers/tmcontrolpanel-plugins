@@ -1,0 +1,6 @@
+{
+  "url": "ta-active-runs-2.0.0.zip",
+  "sha256": "22c8ef20e73d568e4b0f8632d8ad4302178da4433c8c1b352074f7a4d6161fc5",
+  "publishedAt": "2026-11-19T15:20:15.743Z",
+  "changelog": "Rebuilt as a TSX component that follows the server's preset theme. Needs a panel with TSX widget support."
+}

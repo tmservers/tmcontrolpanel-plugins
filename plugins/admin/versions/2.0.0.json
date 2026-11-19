@@ -1,0 +1,6 @@
+{
+  "url": "admin-2.0.0.zip",
+  "sha256": "7c82dfb402f8b546e5a55ae8d25a6bde7912fe9954ce2e12055589d74aa4fa06",
+  "publishedAt": "2026-11-19T15:19:58.508Z",
+  "changelog": "Rebuilt as a TSX component that follows the server's preset theme. Needs a panel with TSX widget support."
+}

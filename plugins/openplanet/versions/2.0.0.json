@@ -1,0 +1,6 @@
+{
+  "url": "openplanet-2.0.0.zip",
+  "sha256": "9c0e2ecc1b8cbb02575153be551773ce5200cb72f23e34f234a842061d146b16",
+  "publishedAt": "2026-11-19T15:20:12.772Z",
+  "changelog": "Rebuilt as a TSX component that follows the server's preset theme. Needs a panel with TSX widget support."
+}

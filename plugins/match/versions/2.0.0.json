@@ -1,0 +1,6 @@
+{
+  "url": "match-2.0.0.zip",
+  "sha256": "eaf08bbdd4e136468e527f0529f54a70bc08f2fe741ddb66a145cc473d151b7a",
+  "publishedAt": "2026-11-19T15:20:11.762Z",
+  "changelog": "Rebuilt as a TSX component that follows the server's preset theme. Needs a panel with TSX widget support. Pick and ban rows start below the header again."
+}

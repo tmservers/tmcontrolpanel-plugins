@@ -1,0 +1,6 @@
+{
+  "url": "player-info-2.0.0.zip",
+  "sha256": "43a5be48d3a04b93d718578cfe3b3c0c7803c531d7f661d7f93bf0450a7cd133",
+  "publishedAt": "2026-11-19T15:20:13.808Z",
+  "changelog": "Rebuilt as a TSX component that follows the server's preset theme. Needs a panel with TSX widget support."
+}

@@ -1,0 +1,6 @@
+{
+  "url": "live-ranking-2.0.0.zip",
+  "sha256": "6d88417c9fd9e41a8dcaaa6e608bad69ccc2dd1cb551e32895bdea2596a03ba8",
+  "publishedAt": "2026-11-19T15:20:08.613Z",
+  "changelog": "Rebuilt as a TSX component that follows the server's preset theme. Needs a panel with TSX widget support."
+}
