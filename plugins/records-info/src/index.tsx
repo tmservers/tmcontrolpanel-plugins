@@ -6,8 +6,15 @@ import {
   type Widget,
   type WidgetRenderProps,
 } from "@tmcontrolpanel/plugin-sdk";
-import { Label, Panel, WidgetFrame } from "@tmcontrolpanel/plugin-sdk/ui";
+import {
+  kit,
+  Label,
+  Panel,
+  RoundedRect,
+  WidgetFrame,
+} from "@tmcontrolpanel/plugin-sdk/ui";
 import { Manialink } from "maniatsx";
+import { slot } from "maniatsx/theme";
 import { client, Publish } from "maniatsx/client";
 import { formatRecordTime } from "./time";
 
@@ -41,13 +48,13 @@ const EMPTY_PUBLISHED: PublishedRecords = {
 };
 const records = client.shared<PublishedRecords>("records", EMPTY_PUBLISHED);
 
-function RecordsInfoWidget(props: WidgetRenderProps) {
+function DefaultRecordsInfo(props: WidgetRenderProps) {
   return (
     <WidgetFrame {...props}>
-      <Panel tone="surface" size={[10, 5]} />
-      <Panel tone="content" pos={[10, 0]} size={[45, 5]} />
-      <Panel tone="surface" pos={[0, -5.25]} size={[10, 5]} />
-      <Panel tone="content" pos={[10, -5.25]} size={[45, 5]} />
+      <Panel tone="surface" size={[10, 5]} corners="left" />
+      <Panel tone="content" pos={[10, 0]} size={[45, 5]} corners="right" />
+      <Panel tone="surface" pos={[0, -5.25]} size={[10, 5]} corners="left" />
+      <Panel tone="content" pos={[10, -5.25]} size={[45, 5]} corners="right" />
       <Label
         tone="text"
         font="title"
@@ -111,6 +118,92 @@ function RecordsInfoWidget(props: WidgetRenderProps) {
     </WidgetFrame>
   );
 }
+
+// Broadcast: one joined block, gold WR and accent LR labels, a faint fill on the second row
+function BroadcastRecordsInfo(props: WidgetRenderProps) {
+  const r = kit.useTokens().shape.radius;
+  return (
+    <WidgetFrame {...props}>
+      <Panel tone="surface" size={[10, 10]} corners="left" />
+      <Panel tone="content" pos={[10, 0]} size={[45, 10]} corners="right" />
+      {/* Second-row fill, rounded where it meets the block's bottom-right corner */}
+      <RoundedRect
+        pos={[10, -5]}
+        size={[45, 5]}
+        color="FFF"
+        opacity={0.05}
+        radius={r}
+        corners={[false, false, false, r > 0]}
+      />
+      <Label
+        tone="record"
+        font="title"
+        pos={[5, -2.75]}
+        size={[10, 5]}
+        text="WR"
+        halign="center"
+        valign="center2"
+        textsize={0.9}
+      />
+      <Label
+        tone="accent"
+        font="title"
+        pos={[5, -7.75]}
+        size={[10, 5]}
+        text={client.bind(() => records.value.localRecordText)}
+        halign="center"
+        valign="center2"
+        textsize={0.9}
+      />
+      <Label
+        tone="contentText"
+        font="body"
+        pos={[12, -2.75]}
+        size={[28, 5]}
+        text={client.bind(() => records.value.worldRecord.nickName)}
+        textprefix="$i"
+        valign="center2"
+        textsize={1}
+      />
+      <Label
+        tone="contentText"
+        font="body"
+        pos={[12, -7.75]}
+        size={[28, 5]}
+        text={client.bind(() => records.value.localRecord.nickName)}
+        textprefix="$i"
+        valign="center2"
+        textsize={1}
+      />
+      <Label
+        tone="contentText"
+        font="title"
+        pos={[53.5, -2.75]}
+        size={[13, 5]}
+        text={client.bind(() => records.value.worldRecord.timeText)}
+        valign="center2"
+        halign="right"
+        textsize={1.1}
+      />
+      <Label
+        tone="contentText"
+        font="title"
+        pos={[53.5, -7.75]}
+        size={[13, 5]}
+        text={client.bind(() => records.value.localRecord.timeText)}
+        valign="center2"
+        halign="right"
+        textsize={1.1}
+      />
+    </WidgetFrame>
+  );
+}
+
+const RecordsInfoWidget = slot<WidgetRenderProps>(
+  "records-info/widget",
+  DefaultRecordsInfo,
+  { broadcast: BroadcastRecordsInfo },
+);
 
 function RecordsInfoUpdate(props: WidgetRenderProps) {
   const data = (props.data as
