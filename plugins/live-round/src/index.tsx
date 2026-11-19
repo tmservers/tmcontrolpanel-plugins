@@ -80,9 +80,11 @@ const finishRow = client.fn(
   ): void => {
     const frame = roundsFrameRef.control;
     for (const control of frame.Controls) {
+      // Controls[0] is the scroll background, not a row
+      if (control === frame.Controls[0]) continue;
       const row = control as CMlFrame;
       if (row.DataAttributeGet("login") !== login) continue;
-      const finish = row.Controls[7] as CMlFrame;
+      const finish = row.Controls[8] as CMlFrame;
       if (ml.AnimMgr !== null) ml.AnimMgr.Flush(finish);
       let pointsText = "";
       if (points > 0) pointsText = "+" + TextLib.ToText(points);
@@ -124,13 +126,13 @@ function ClientBehavior({ surfaceColor }: { surfaceColor: string }) {
         round.mainColor === ""
           ? ColorLib.Hex3ToRgb(surfaceColor)
           : ColorLib.Hex3ToRgb(round.mainColor);
-      (row.Controls[2] as CMlLabel).SetText(TextLib.ToText(round.rank));
-      (row.Controls[3] as CMlQuad).ChangeImageUrl(
+      (row.Controls[3] as CMlLabel).SetText(TextLib.ToText(round.rank));
+      (row.Controls[4] as CMlQuad).ChangeImageUrl(
         "file://ZoneFlags/Login/" + round.login + "/country",
       );
-      (row.Controls[4] as CMlLabel).SetText(round.name);
-      (row.Controls[5] as CMlLabel).SetText(round.pointsText);
-      (row.Controls[6] as CMlLabel).SetText(round.timeText);
+      (row.Controls[5] as CMlLabel).SetText(round.name);
+      (row.Controls[6] as CMlLabel).SetText(round.pointsText);
+      (row.Controls[7] as CMlLabel).SetText(round.timeText);
       row.DataAttributeSet("login", round.login);
       row.Show();
       index = index + 1;
