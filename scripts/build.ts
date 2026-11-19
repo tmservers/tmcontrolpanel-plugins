@@ -23,11 +23,12 @@ for (const entry of readdirSync(root, { withFileTypes: true }).sort((a, b) =>
   if (!entry.isDirectory() || !existsSync(join(dir, "tmcp-plugin.json")))
     continue;
   const build = await buildPlugin(dir);
-  // SDK source-location comments differ for a linked local checkout versus CI.
+  // Panel package source-location comments differ for a linked local checkout versus CI.
   // Keep the bundle readable while making archive checksums independent of that path.
   const bundle = readFileSync(build.file, "utf8").replace(
-    /^  \/\/ .*\/packages\/plugin-sdk\/(.*)$/gm,
-    "  // @tmcontrolpanel/plugin-sdk/$1",
+    /^  \/\/ .*\/packages\/(plugin-sdk|shared|db|maniatsx)\/(.*)$/gm,
+    (_, pkg: string, rest: string) =>
+      `  // ${pkg === "maniatsx" ? pkg : `@tmcontrolpanel/${pkg}`}/${rest}`,
   );
   writeFileSync(build.file, bundle);
   const result = await packPlugin(dir, { build: false });
