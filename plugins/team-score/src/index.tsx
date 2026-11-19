@@ -9,7 +9,14 @@ import {
 } from "@tmcontrolpanel/plugin-sdk";
 import { Label, Panel, WidgetFrame, kit } from "@tmcontrolpanel/plugin-sdk/ui";
 import { Manialink } from "maniatsx";
-import { client, ml, Publish, type Integer, type Real } from "maniatsx/client";
+import {
+  client,
+  ml,
+  Publish,
+  type Integer,
+  type Real,
+  type Vec3,
+} from "maniatsx/client";
 import {
   CAnimManager,
   CMlFrame,
@@ -109,7 +116,7 @@ const wrapName = client.fn(
   },
 );
 
-const teamColor = client.fn((hex: string, side: Integer) => {
+const teamColor = client.fn((hex: string, side: Integer): Vec3 => {
   const upper = TextLib.ToUpperCase(hex);
   if (TextLib.Length(upper) === 3) return ColorLib.Hex3ToRgb(upper);
   if (TextLib.Length(upper) === 6) return ColorLib.Hex6ToRgb(upper);
