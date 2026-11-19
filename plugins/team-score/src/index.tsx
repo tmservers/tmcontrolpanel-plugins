@@ -18,14 +18,11 @@ import {
   type Vec3,
 } from "maniatsx/client";
 import {
-  CAnimManager,
   CMlFrame,
   CMlLabel,
   CMlQuad,
   ColorLib,
-  MathLib,
   TextLib,
-  vec2,
   vec3,
 } from "maniatsx/maniascript";
 import {
@@ -61,7 +58,6 @@ interface ClientTeam {
 interface ClientScore {
   teams: ClientTeam[];
   leader: Integer;
-  pointsLimit: Integer;
   status: string;
   warmUp: boolean;
   centerLogo: string;
@@ -81,7 +77,6 @@ const EMPTY_SCORE: ClientScore = {
     { name: "Team Red", color: "", logo: "", points: 0 },
   ],
   leader: -1,
-  pointsLimit: 0,
   status: "",
   warmUp: false,
   centerLogo: "",
@@ -143,33 +138,10 @@ const updateSide = client.fn((team: ClientTeam, side: Integer): void => {
   } else {
     logo.Hide();
   }
-  const barBg = frame.GetFirstChild("bar-bg" + suffix) as CMlQuad;
-  const bar = frame.GetFirstChild("bar" + suffix) as CMlQuad;
-  if (score.value.pointsLimit <= 0) {
-    barBg.Hide();
-    bar.Hide();
-  } else {
-    barBg.Show();
-    bar.Show();
-    bar.BgColor = color;
-    let width: Real =
-      30.0 *
-      MathLib.Min(
-        MathLib.ToReal(team.points) / MathLib.ToReal(score.value.pointsLimit),
-        1.0,
-      );
-    let x: Real = 74.0;
-    if (side === 0) x = 40.0 - width;
-    if (ml.AnimMgr !== null) {
-      ml.AnimMgr.Flush(bar);
-      ml.AnimMgr.Add(
-        bar,
-        "<quad pos='" + x + " -9.25' size='" + width + " 0.75' />",
-        400,
-        CAnimManager.EAnimManagerEasing.ExpInOut,
-      );
-    }
-  }
+  // The strip under the team name marks the team leading the current round
+  const lead = frame.GetFirstChild("lead" + suffix) as CMlQuad;
+  lead.BgColor = color;
+  lead.Visible = score.value.leader === side;
 });
 
 const updateScoreboard = client.fn((): void => {
@@ -178,26 +150,6 @@ const updateScoreboard = client.fn((): void => {
   updateSide(state.teams[0], 0);
   updateSide(state.teams[1], 1);
   const frame = scoreFrame.control;
-  const leaderBar = frame.GetFirstChild("leader-bar") as CMlQuad;
-  if (state.leader === 0 || state.leader === 1) {
-    let x: Real = 40.0;
-    if (state.leader === 1) x = 62.0;
-    if (!leaderBar.Visible) {
-      leaderBar.RelativePosition_V3 = vec2(x, -9.0);
-      leaderBar.Show();
-    }
-    if (ml.AnimMgr !== null) {
-      ml.AnimMgr.Flush(leaderBar);
-      ml.AnimMgr.Add(
-        leaderBar,
-        "<quad pos='" + x + " -9' />",
-        300,
-        CAnimManager.EAnimManagerEasing.QuadInOut,
-      );
-    }
-  } else {
-    leaderBar.Hide();
-  }
   const centerLogo = frame.GetFirstChild("center-logo") as CMlQuad;
   const versus = frame.GetFirstChild("versus") as CMlLabel;
   if (state.centerLogo !== "") {
@@ -262,18 +214,11 @@ function TeamScoreWidget(props: WidgetRenderProps) {
           textsize={1.75}
           valign="center"
         />
-        <Panel
-          id="bar-bg-0"
-          tone="contentAlt"
-          pos={[10, -9.25]}
-          size={[30, 0.75]}
-          hidden
-        />
         <quad
-          id="bar-0"
-          pos={[40, -9.25]}
+          id="lead-0"
+          pos={[10, -9.25]}
           z-index={2}
-          size={[0, 0.75]}
+          size={[30, 0.75]}
           hidden
         />
         <Panel id="score-bg-0" tone="surface" pos={[40, 0]} size={[12, 10]} />
@@ -308,14 +253,6 @@ function TeamScoreWidget(props: WidgetRenderProps) {
           keepratio="Fit"
           hidden
         />
-        <quad
-          id="leader-bar"
-          pos={[40, -9]}
-          z-index={2}
-          size={[12, 1]}
-          bgcolor={color.content}
-          hidden
-        />
         <Panel id="score-bg-1" tone="surface" pos={[62, 0]} size={[12, 10]} />
         <label
           id="score-1"
@@ -348,18 +285,11 @@ function TeamScoreWidget(props: WidgetRenderProps) {
           valign="center"
           textsize={1.75}
         />
-        <Panel
-          id="bar-bg-1"
-          tone="contentAlt"
-          pos={[74, -9.25]}
-          size={[30, 0.75]}
-          hidden
-        />
         <quad
-          id="bar-1"
+          id="lead-1"
           pos={[74, -9.25]}
           z-index={2}
-          size={[0, 0.75]}
+          size={[30, 0.75]}
           hidden
         />
         <Panel id="stripe-1" tone="surface" pos={[104, 0]} size={[10, 10]} />
@@ -399,7 +329,6 @@ function TeamScoreUpdate(props: WidgetRenderProps) {
       points: team.points,
     })),
     leader: data.leader,
-    pointsLimit: data.pointsLimit,
     status: data.status,
     warmUp: data.warmUp,
     centerLogo: data.centerLogo,
