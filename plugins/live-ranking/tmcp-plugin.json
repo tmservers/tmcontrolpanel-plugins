@@ -1,7 +1,7 @@
 {
   "slug": "live-ranking",
   "name": "Live Ranking",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "sdk": 5,
   "description": "A widget that shows the current standings in points during a match.",
   "author": "TMControlPanel",
