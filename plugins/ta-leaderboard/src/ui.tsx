@@ -175,7 +175,7 @@ function DefaultLeaderboardWidget(props: WidgetRenderProps) {
           halign="right"
           textsize={1}
         />
-        <frame pos={[56, 0]} size={[14.5, 5]}>
+        <frame pos={[56, 0]} size={[14.5, 5]} z-index={1}>
           <quad size={[14.5, 5]} bgcolor="22D" />
           <Label
             tone="text"
@@ -256,7 +256,7 @@ function BroadcastLeaderboardWidget(props: WidgetRenderProps) {
           halign="right"
           textsize={1}
         />
-        <frame pos={[56, 0]} size={[14.5, 5]}>
+        <frame pos={[56, 0]} size={[14.5, 5]} z-index={1}>
           <quad size={[14.5, 5]} bgcolor="22D" />
           <Label
             tone="text"
