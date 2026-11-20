@@ -1,7 +1,10 @@
 import { createHash } from "node:crypto";
 import { strToU8, zipSync } from "fflate";
 import { describe, expect, it } from "vitest";
-import { matchesPublishedSource } from "../scripts/archive";
+import {
+  matchesPublishedSource,
+  normalizeSourceComments,
+} from "../scripts/archive";
 
 const files = { "index.js": strToU8("hello"), "README.md": strToU8("example") };
 const published = zipSync(files, { mtime: new Date(1980, 0, 2, 1) });
@@ -28,5 +31,17 @@ describe("published source verification", () => {
     expect(() =>
       matchesPublishedSource(published, published, "0".repeat(64)),
     ).toThrow("Published archive does not match its pinned checksum");
+  });
+
+  it("ignores where the panel checkout lives in source comments", () => {
+    const bundle = (root: string) =>
+      strToU8(`  // ${root}/node_modules/maniatsx/dist/ms.js\nvar a = 1;\n`);
+    const local = zipSync({ "index.js": bundle("../gocontrolpanel") });
+    const ci = zipSync({ "index.js": bundle(".controlpanel") });
+    const sum = createHash("sha256").update(local).digest("hex");
+    expect(matchesPublishedSource(local, ci, sum)).toBe(true);
+    expect(normalizeSourceComments("  // ../x/packages/shared/src/a.ts")).toBe(
+      "  // @tmcontrolpanel/shared/src/a.ts",
+    );
   });
 });
