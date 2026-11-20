@@ -105,6 +105,12 @@ the same with `TMCONTROLPANEL_REF`, which optionally selects the panel branch to
 The registry owns plugin unit tests, sandbox behavior tests, and template snapshots;
 its tests use the generic sandbox harness from the panel checkout.
 
+Plugins with a TSX interface split their source the same way:
+
+- `src/index.ts`: `definePlugin` and the plugin class with the server-side logic, no JSX.
+- `src/ui.tsx`: the Manialink: client state and scripts, widgets, windows, theme slots and update pages.
+- `src/types.ts`: data shapes that both files use, when there are any.
+
 To change a first-party plugin, edit its source/templates and increase the version
 in `tmcp-plugin.json`. Then run:
 
