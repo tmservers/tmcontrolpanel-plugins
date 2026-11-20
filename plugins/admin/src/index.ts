@@ -3,9 +3,9 @@ import {
   type PluginContext,
   type Widget,
 } from "@tmcontrolpanel/plugin-sdk";
-import { NotifyAdminWidget } from "./widget";
+import { NotifyAdminWidget } from "./ui";
 
-export { NotifyAdminWidget } from "./widget";
+export { NotifyAdminWidget } from "./ui";
 
 export class NotifyAdminPlugin {
   private readonly widget: Widget;

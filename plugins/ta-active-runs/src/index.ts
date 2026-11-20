@@ -11,7 +11,7 @@ import {
   type Widget,
 } from "@tmcontrolpanel/plugin-sdk";
 import { FINISHED, sortActiveRuns, type ActiveRun } from "./names";
-import { ActiveRunsUpdate, ActiveRunsWidget } from "./widget";
+import { ActiveRunsUpdate, ActiveRunsWidget } from "./ui";
 
 class TAActiveRunsPlugin {
   private readonly widget: Widget;

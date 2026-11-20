@@ -1,25 +1,13 @@
-import {
-  definePlugin,
-  type PluginContext,
-  type SMapInfo,
-  type Widget,
-  type WidgetRenderProps,
-} from "@tmcontrolpanel/plugin-sdk";
+import type { WidgetRenderProps } from "@tmcontrolpanel/plugin-sdk";
+import type { MapInfo } from "./types";
+import { formatAuthorTime } from "./names";
 import { kit, Label, Panel, WidgetFrame } from "@tmcontrolpanel/plugin-sdk/ui";
 import { Manialink } from "maniatsx";
 import { slot } from "maniatsx/theme";
 import { client, Publish } from "maniatsx/client";
 import { CMlLabel, vec2 } from "maniatsx/maniascript";
-import { formatAuthorTime, resetTrailingWhite } from "./names";
 
-export { formatAuthorTime, resetTrailingWhite };
-
-interface MapInfo {
-  name: string;
-  author: string;
-  // Author medal time in ms, 0 when unknown
-  authorTime?: number;
-}
+export const UNKNOWN: MapInfo = { name: "-", author: "-" };
 
 interface PublishedMap {
   name: string;
@@ -30,7 +18,6 @@ interface PublishedMap {
   authorTime: string;
 }
 
-const UNKNOWN: MapInfo = { name: "-", author: "-" };
 const EMPTY_PUBLISHED: PublishedMap = {
   name: "-",
   author: "-",
@@ -151,7 +138,7 @@ function BroadcastMapInfo(props: WidgetRenderProps) {
   );
 }
 
-const MapInfoWidget = slot<WidgetRenderProps>(
+export const MapInfoWidget = slot<WidgetRenderProps>(
   "map-info/widget",
   DefaultMapInfo,
   {
@@ -159,8 +146,11 @@ const MapInfoWidget = slot<WidgetRenderProps>(
   },
 );
 
-function MapInfoUpdate(props: WidgetRenderProps) {
-  const info = (props.data as MapInfo | undefined) ?? UNKNOWN;
+export function MapInfoUpdate(props: WidgetRenderProps) {
+  const info = (props.data as MapInfo | undefined) ?? {
+    name: "-",
+    author: "-",
+  };
   const { color } = kit.useTokens();
   const time = formatAuthorTime(info.authorTime ?? 0);
   // $< $> keeps the nickname's own codes from leaking into the rest of the line
@@ -177,55 +167,3 @@ function MapInfoUpdate(props: WidgetRenderProps) {
     </Manialink>
   );
 }
-
-class MapInfoPlugin {
-  private readonly widget: Widget;
-
-  constructor(private readonly ctx: PluginContext) {
-    this.widget = ctx.ui.widget({
-      id: "map-info-widget",
-      component: MapInfoWidget,
-      updateComponent: MapInfoUpdate,
-      position: { x: 100, y: 85 },
-      hideWhileDriving: true,
-    });
-    ctx.on("beginMap", () => this.refresh());
-  }
-
-  async start() {
-    this.widget.display();
-    await this.refresh();
-  }
-
-  private async refresh() {
-    this.widget.setData(await this.resolve());
-    this.widget.update();
-  }
-
-  private async resolve(): Promise<MapInfo> {
-    const map = await this.ctx.gbx.call<SMapInfo>("GetCurrentMapInfo");
-    if (!map) return UNKNOWN;
-    if (map.Name && map.AuthorNickname) {
-      return {
-        name: resetTrailingWhite(map.Name),
-        author: map.AuthorNickname,
-        authorTime: map.AuthorTime,
-      };
-    }
-    if (!map.UId) return UNKNOWN;
-
-    const record = await this.ctx.maps.findByUid(map.UId);
-    return record
-      ? {
-          name: resetTrailingWhite(record.name),
-          author: record.authorNickname || "-",
-          // The server still knows the medal times when it lacks the nickname
-          authorTime: map.AuthorTime,
-        }
-      : UNKNOWN;
-  }
-}
-
-export default definePlugin({
-  create: (ctx) => new MapInfoPlugin(ctx),
-});
