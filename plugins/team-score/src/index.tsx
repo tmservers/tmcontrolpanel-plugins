@@ -9,6 +9,7 @@ import {
 } from "@tmcontrolpanel/plugin-sdk";
 import { Label, Panel, WidgetFrame, kit } from "@tmcontrolpanel/plugin-sdk/ui";
 import { Manialink } from "maniatsx";
+import { slot } from "maniatsx/theme";
 import {
   client,
   ml,
@@ -188,7 +189,7 @@ function TeamScoreClient() {
   return null;
 }
 
-function TeamScoreWidget(props: WidgetRenderProps) {
+function DefaultTeamScoreWidget(props: WidgetRenderProps) {
   const { color } = kit.useTokens();
   return (
     <WidgetFrame {...props}>
@@ -316,7 +317,144 @@ function TeamScoreWidget(props: WidgetRenderProps) {
   );
 }
 
-function TeamScoreUpdate(props: WidgetRenderProps) {
+function BroadcastTeamScoreWidget(props: WidgetRenderProps) {
+  const { color, font } = kit.useTokens();
+  return (
+    <WidgetFrame {...props}>
+      <TeamScoreClient />
+      <frame id="team-score" ref={scoreFrame} size={[116, 16]}>
+        <quad id="stripe-0" pos={[0, 0]} size={[10, 10]} />
+        <Panel tone="content" pos={[10, 0]} size={[30, 10]} />
+        <quad
+          id="logo-0"
+          pos={[1, -1]}
+          z-index={1}
+          size={[8, 8]}
+          keepratio="Fit"
+          hidden
+        />
+        <Label
+          id="name-0"
+          tone="contentText"
+          font="body"
+          pos={[12, -4.75]}
+          size={[25.5, 10]}
+          text=""
+          textprefix="$t"
+          textsize={1.75}
+          valign="center"
+        />
+        <quad
+          id="lead-0"
+          pos={[10, -9.25]}
+          z-index={2}
+          size={[30, 0.75]}
+          hidden
+        />
+        <Panel id="score-bg-0" tone="surface" pos={[40, 0]} size={[12, 10]} />
+        <label
+          id="score-0"
+          pos={[46, -4.6]}
+          size={[12, 10]}
+          text="0"
+          halign="center"
+          valign="center"
+          textsize={3}
+          textcolor={color.text}
+          textfont={font.title}
+        />
+        <Panel tone="content" pos={[52, 0]} size={[10, 10]} />
+        <label
+          id="versus"
+          pos={[57, -4.75]}
+          size={[10, 10]}
+          text="vs"
+          halign="center"
+          valign="center"
+          textsize={2.5}
+          textcolor={color.textMuted}
+          textfont={font.body}
+        />
+        <quad
+          id="center-logo"
+          pos={[53, -1]}
+          z-index={1}
+          size={[8, 8]}
+          keepratio="Fit"
+          hidden
+        />
+        <Panel id="score-bg-1" tone="surface" pos={[62, 0]} size={[12, 10]} />
+        <label
+          id="score-1"
+          pos={[68, -4.6]}
+          size={[12, 10]}
+          text="0"
+          halign="center"
+          valign="center"
+          textsize={3}
+          textcolor={color.text}
+          textfont={font.title}
+        />
+        <Panel tone="content" pos={[74, 0]} size={[30, 10]} />
+        <quad
+          id="logo-1"
+          pos={[105, -1]}
+          z-index={1}
+          size={[8, 8]}
+          keepratio="Fit"
+          hidden
+        />
+        <Label
+          id="name-1"
+          tone="contentText"
+          font="body"
+          pos={[102, -4.75]}
+          size={[25.5, 10]}
+          text=""
+          textprefix="$t"
+          halign="right"
+          valign="center"
+          textsize={1.75}
+        />
+        <quad
+          id="lead-1"
+          pos={[74, -9.25]}
+          z-index={2}
+          size={[30, 0.75]}
+          hidden
+        />
+        <quad id="stripe-1" pos={[104, 0]} size={[10, 10]} />
+        <Panel
+          id="status-bg"
+          tone="content"
+          pos={[37, -10.25]}
+          size={[40, 4]}
+          hidden
+        />
+        <Label
+          id="status"
+          tone="text"
+          font="title"
+          pos={[57, -11.9]}
+          size={[38, 4]}
+          text=""
+          textprefix="$t"
+          halign="center"
+          valign="center"
+          textsize={0.9}
+        />
+      </frame>
+    </WidgetFrame>
+  );
+}
+
+const TeamScoreWidget = slot<WidgetRenderProps>(
+  "team-score/widget",
+  DefaultTeamScoreWidget,
+  { broadcast: BroadcastTeamScoreWidget },
+);
+
+function DefaultTeamScoreUpdate(props: WidgetRenderProps) {
   const data =
     (props.data as { state?: WidgetState } | undefined)?.state ??
     (EMPTY_SCORE as unknown as WidgetState);
@@ -342,6 +480,39 @@ function TeamScoreUpdate(props: WidgetRenderProps) {
     </Manialink>
   );
 }
+
+function BroadcastTeamScoreUpdate(props: WidgetRenderProps) {
+  const data =
+    (props.data as { state?: WidgetState } | undefined)?.state ??
+    (EMPTY_SCORE as unknown as WidgetState);
+  const { color } = kit.useTokens();
+  const value: ClientScore = {
+    teams: data.teams.map((team) => ({
+      name: team.name,
+      color: team.color,
+      logo: team.logo,
+      points: team.points,
+    })),
+    leader: data.leader,
+    status: data.status,
+    warmUp: data.warmUp,
+    centerLogo: data.centerLogo,
+    themeSurface: color.surface,
+    themeTextMuted: color.text,
+    themeContentText: color.contentText,
+  };
+  return (
+    <Manialink id={props.id}>
+      <Publish to={score} value={value} />
+    </Manialink>
+  );
+}
+
+const TeamScoreUpdate = slot<WidgetRenderProps>(
+  "team-score/update",
+  DefaultTeamScoreUpdate,
+  { broadcast: BroadcastTeamScoreUpdate },
+);
 
 function fixedSide(team: CustomTeam): Side | null {
   if (team.side === "blue") return 0;

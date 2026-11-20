@@ -7,7 +7,7 @@ import {
 } from "node:fs";
 import { join, resolve } from "node:path";
 import { buildPlugin, packPlugin } from "@tmcontrolpanel/plugin-sdk/cli";
-import { matchesPublishedSource } from "./archive";
+import { matchesPublishedSource, normalizeSourceComments } from "./archive";
 
 const root = resolve("plugins");
 const publish = process.argv.includes("--publish");
@@ -23,13 +23,7 @@ for (const entry of readdirSync(root, { withFileTypes: true }).sort((a, b) =>
   if (!entry.isDirectory() || !existsSync(join(dir, "tmcp-plugin.json")))
     continue;
   const build = await buildPlugin(dir);
-  // Panel package source-location comments differ for a linked local checkout versus CI.
-  // Keep the bundle readable while making archive checksums independent of that path.
-  const bundle = readFileSync(build.file, "utf8").replace(
-    /^  \/\/ .*\/packages\/(plugin-sdk|shared|db|maniatsx)\/(.*)$/gm,
-    (_, pkg: string, rest: string) =>
-      `  // ${pkg === "maniatsx" ? pkg : `@tmcontrolpanel/${pkg}`}/${rest}`,
-  );
+  const bundle = normalizeSourceComments(readFileSync(build.file, "utf8"));
   writeFileSync(build.file, bundle);
   const result = await packPlugin(dir, { build: false });
   const versionFile = join(

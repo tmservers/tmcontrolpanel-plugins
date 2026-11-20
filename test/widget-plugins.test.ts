@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import slugid from "slugid";
+import { resolvePreset } from "@tmcontrolpanel/shared";
 import { isValidEcmApiKey } from "../plugins/ecm/src/validation";
-import { resetTrailingWhite } from "../plugins/map-info/src/names";
+import {
+  formatAuthorTime,
+  resetTrailingWhite,
+} from "../plugins/map-info/src/names";
 import { formatRecordTime } from "../plugins/records-info/src/time";
 import { sortRoundEntries } from "../plugins/live-round/src/rounds";
 import { FINISHED, sortActiveRuns } from "../plugins/ta-active-runs/src/names";
@@ -147,6 +151,48 @@ describe("map-info", () => {
     expect(widget).toMatch(/Mtx_X_\w*map\w*info\w*map/);
   });
 
+  it("uses the Broadcast layout with a byline under that theme", async () => {
+    const h = await withPackage("map-info", {
+      server: { themeData: resolvePreset("broadcast") },
+    });
+    const update = h.session.lastManialink(
+      page("map-info", "map-info-widget-update"),
+    );
+    expect(update).toContain("by $<$FFFAuthor$>");
+    expect(update).toContain('authorTime = "· AT 40.000"');
+    const widget = h.session.lastManialink(page("map-info", "map-info-widget"));
+    // The author time is placed after the measured byline
+    expect(widget).toContain("ComputeWidth");
+  });
+
+  it("keeps the author time when the name comes from the map list", async () => {
+    const h = await withPackage("map-info", {
+      connect: false,
+      server: { themeData: resolvePreset("broadcast") },
+    });
+    // No nickname from the server: the plugin falls back to the stored map
+    h.world.currentMap = { ...h.world.currentMap, AuthorNickname: "" };
+    h.maps.maps.set("map-a-uid", {
+      ...(await h.maps.findByUid("map-a-uid")),
+      uid: "map-a-uid",
+      name: "Stored Map",
+      authorNickname: "Stored Author",
+    } as never);
+    await h.runtime.start();
+    await new Promise((r) => setImmediate(r));
+    const update = h.session.lastManialink(
+      page("map-info", "map-info-widget-update"),
+    );
+    expect(update).toContain('name = "Stored Map"');
+    expect(update).toContain('authorTime = "· AT 40.000"');
+  });
+
+  it("formats the author time", () => {
+    expect(formatAuthorTime(0)).toBe("");
+    expect(formatAuthorTime(57410)).toBe("57.410");
+    expect(formatAuthorTime(66714)).toBe("1:06.714");
+  });
+
   it("resets a trailing white color change to the widget color", () => {
     expect(resetTrailingWhite("$f00Red $fffWhite")).toBe("$f00Red $gWhite");
     expect(resetTrailingWhite("$FFFWhite")).toBe("$gWhite");
@@ -215,6 +261,17 @@ describe("records-info", () => {
     expect(formatRecordTime(-1)).toBe("--:--.---");
     expect(formatRecordTime(9999)).toBe("09.999");
     expect(formatRecordTime(61007)).toBe("1:01.007");
+  });
+
+  it("uses the Broadcast layout under that theme", async () => {
+    const h = await withPackage("records-info", {
+      server: { themeData: resolvePreset("broadcast") },
+    });
+    const widget = h.session.lastManialink(
+      page("records-info", "records-info-widget"),
+    );
+    // Gold WR label from the record token
+    expect(widget).toContain('textcolor="EB4"');
   });
 
   it("combines the local record and the world record", async () => {

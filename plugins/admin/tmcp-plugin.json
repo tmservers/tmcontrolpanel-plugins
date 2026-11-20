@@ -1,7 +1,7 @@
 {
   "slug": "admin",
   "name": "Admin Help",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "sdk": 5,
   "description": "A widget and admin command to notify a server admin. The command is '/admin <message>'.",
   "author": "TMControlPanel",

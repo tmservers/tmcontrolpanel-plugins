@@ -1,7 +1,7 @@
 {
   "slug": "match",
   "name": "Match",
-  "version": "2.0.0",
+  "version": "2.1.5",
   "sdk": 5,
   "description": "Manages a match on the server: starting and stopping it, pausing, a pick and ban phase and a lobby.",
   "author": "TMControlPanel",

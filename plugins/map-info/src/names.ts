@@ -23,3 +23,13 @@ export function resetTrailingWhite(name: string): string {
   if (!last || last.code.toLowerCase() !== "fff") return name;
   return `${name.slice(0, last.index)}$g${name.slice(last.index + 4)}`;
 }
+
+// Medal time as m:ss.mmm (or ss.mmm under a minute); empty when unknown
+export function formatAuthorTime(time: number): string {
+  if (!(time > 0)) return "";
+  const totalSeconds = Math.floor(time / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = String(totalSeconds % 60).padStart(2, "0");
+  const ms = String(time % 1000).padStart(3, "0");
+  return minutes > 0 ? `${minutes}:${seconds}.${ms}` : `${seconds}.${ms}`;
+}

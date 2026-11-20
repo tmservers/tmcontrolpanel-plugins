@@ -18,6 +18,7 @@ import {
   kit,
 } from "@tmcontrolpanel/plugin-sdk/ui";
 import { Manialink, type Vec2 } from "maniatsx";
+import { slot } from "maniatsx/theme";
 import { client, Publish, type Integer } from "maniatsx/client";
 import {
   CMlEntry,
@@ -118,11 +119,27 @@ function Button(props: {
   width: number;
   action: string;
   text: LabelProps["text"];
+  broadcast?: boolean;
 }) {
   return (
     <frame id={props.id} pos={[props.x, 0]} size={[props.width, 5]}>
-      <Panel tone="contentAlt" size={[props.width, 5]} action={props.action} />
-      <Panel tone="surface" pos={[0, -4.75]} size={[props.width, 0.25]} />
+      {props.broadcast ? (
+        <quad
+          size={[props.width, 5]}
+          bgcolor="FFF"
+          opacity={0.08}
+          action={props.action}
+        />
+      ) : (
+        <>
+          <Panel
+            tone="contentAlt"
+            size={[props.width, 5]}
+            action={props.action}
+          />
+          <Panel tone="surface" pos={[0, -4.75]} size={[props.width, 0.25]} />
+        </>
+      )}
       <Label
         tone="contentText"
         font="body"
@@ -150,7 +167,9 @@ function SectionTitle(props: { text: string }) {
   );
 }
 
-function EcmWindow(props: WidgetRenderProps & { actions: WindowActions }) {
+function EcmWindowView(
+  props: WidgetRenderProps & { actions: WindowActions; broadcast?: boolean },
+) {
   const { color } = kit.useTokens();
   return (
     <Page id={props.id}>
@@ -188,6 +207,7 @@ function EcmWindow(props: WidgetRenderProps & { actions: WindowActions }) {
                 width={25}
                 action={props.actions.toggle}
                 text={client.bind(() => toggleText(view.value.isRecording))}
+                broadcast={props.broadcast}
               />
             </frame>
           </frame>
@@ -208,8 +228,8 @@ function EcmWindow(props: WidgetRenderProps & { actions: WindowActions }) {
                 name="ecm-api-key-entry"
                 id="ecm-api-key-entry"
                 textsize={1}
-                focusareacolor1={color.contentAlt}
-                focusareacolor2={color.contentAlt}
+                focusareacolor1={props.broadcast ? "FFF1" : color.contentAlt}
+                focusareacolor2={props.broadcast ? "FFF2" : color.contentAlt}
                 textcolor={color.contentText}
                 textformat="Password"
                 valuetype="Ml_String"
@@ -233,8 +253,8 @@ function EcmWindow(props: WidgetRenderProps & { actions: WindowActions }) {
                 size={[5, 5]}
                 text={EYE}
                 textcolor={color.contentText}
-                focusareacolor1={color.contentAlt}
-                focusareacolor2={color.contentAlt}
+                focusareacolor1={props.broadcast ? "FFF1" : color.contentAlt}
+                focusareacolor2={props.broadcast ? "FFF2" : color.contentAlt}
                 halign="center"
                 valign="center"
                 textsize={1}
@@ -257,6 +277,7 @@ function EcmWindow(props: WidgetRenderProps & { actions: WindowActions }) {
                 width={12}
                 action={props.actions.save}
                 text="Save"
+                broadcast={props.broadcast}
               />
               <label
                 ref={errorRef}
@@ -292,6 +313,7 @@ function EcmWindow(props: WidgetRenderProps & { actions: WindowActions }) {
                   width={5}
                   action={props.actions.decrease}
                   text="-"
+                  broadcast={props.broadcast}
                 />
                 <Button
                   id="increase-round-offset"
@@ -299,6 +321,7 @@ function EcmWindow(props: WidgetRenderProps & { actions: WindowActions }) {
                   width={5}
                   action={props.actions.increase}
                   text="+"
+                  broadcast={props.broadcast}
                 />
               </frame>
             </frame>
@@ -308,6 +331,24 @@ function EcmWindow(props: WidgetRenderProps & { actions: WindowActions }) {
     </Page>
   );
 }
+
+function DefaultEcmWindow(
+  props: WidgetRenderProps & { actions: WindowActions },
+) {
+  return <EcmWindowView {...props} />;
+}
+
+function BroadcastEcmWindow(
+  props: WidgetRenderProps & { actions: WindowActions },
+) {
+  return <EcmWindowView {...props} broadcast />;
+}
+
+const EcmWindow = slot<WidgetRenderProps & { actions: WindowActions }>(
+  "ecm/window",
+  DefaultEcmWindow,
+  { broadcast: BroadcastEcmWindow },
+);
 
 function EcmWindowUpdate(props: WidgetRenderProps) {
   return (

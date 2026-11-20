@@ -19,7 +19,8 @@ import {
 } from "@tmcontrolpanel/plugin-sdk";
 import { Label, Panel, WidgetFrame, kit } from "@tmcontrolpanel/plugin-sdk/ui";
 import { Manialink } from "maniatsx";
-import { client, ml, Publish, type Integer } from "maniatsx/client";
+import { slot } from "maniatsx/theme";
+import { client, ml, Publish, type Integer, type Real } from "maniatsx/client";
 import {
   CAnimManager,
   CMlFrame,
@@ -77,6 +78,7 @@ const finishRow = client.fn(
     visible: boolean,
     badge: string,
     badgeVisible: boolean,
+    clipFinish: boolean,
   ): void => {
     const frame = roundsFrameRef.control;
     for (const control of frame.Controls) {
@@ -84,13 +86,20 @@ const finishRow = client.fn(
       if (control === frame.Controls[0]) continue;
       const row = control as CMlFrame;
       if (row.DataAttributeGet("login") !== login) continue;
-      const finish = row.Controls[8] as CMlFrame;
+      // Clipped rows wrap the finish frame in a clip frame at the widget edge
+      const outer = row.Controls[8] as CMlFrame;
+      const finish = clipFinish ? (outer.Controls[0] as CMlFrame) : outer;
       if (ml.AnimMgr !== null) ml.AnimMgr.Flush(finish);
       let pointsText = "";
       if (points > 0) pointsText = "+" + TextLib.ToText(points);
       else if (points < 0) pointsText = "-" + TextLib.ToText(-points);
       if (visible) (finish.Controls[1] as CMlLabel).SetText(pointsText);
       (finish.Controls[3] as CMlLabel).SetText(badge);
+      // Broadcast keeps gold for WR only
+      if (clipFinish)
+        (finish.Controls[3] as CMlLabel).TextColor = ColorLib.Hex3ToRgb(
+          badge === "WR" ? "EB4" : "FFF",
+        );
       if (visible && badgeVisible) {
         (finish.Controls[2] as CMlQuad).Show();
         (finish.Controls[3] as CMlLabel).Show();
@@ -101,7 +110,13 @@ const finishRow = client.fn(
       if (ml.AnimMgr !== null)
         ml.AnimMgr.Add(
           finish,
-          visible ? "<frame pos='55 0' />" : "<frame pos='47.5 0' />",
+          clipFinish
+            ? visible
+              ? "<frame pos='0 0' />"
+              : "<frame pos='-14 0' />"
+            : visible
+              ? "<frame pos='55 0' />"
+              : "<frame pos='47.5 0' />",
           600,
           CAnimManager.EAnimManagerEasing.ExpInOut,
         );
@@ -110,7 +125,17 @@ const finishRow = client.fn(
   },
 );
 const previousFinishes = client.state<PublishedFinish[]>([]);
-function ClientBehavior({ surfaceColor }: { surfaceColor: string }) {
+// rowStep: distance between rows; Broadcast joins them without the 0.25 gap
+// clipFinish: the finish frame sits in a clip frame past the time box
+function ClientBehavior({
+  surfaceColor,
+  rowStep = 5.25,
+  clipFinish = false,
+}: {
+  surfaceColor: string;
+  rowStep?: Real;
+  clipFinish?: boolean;
+}) {
   client.onInit(() => {
     const frame = roundsFrameRef.control;
     frame.ScrollActive = true;
@@ -146,11 +171,11 @@ function ClientBehavior({ surfaceColor }: { surfaceColor: string }) {
     let displayedCount: Integer = roundsData.value.length;
     if (displayedCount > ROWS) displayedCount = ROWS;
     let maxY =
-      MathLib.ToReal(displayedCount) * 5.25 -
-      MathLib.ToReal(rowCountData.value) * 5.25;
+      MathLib.ToReal(displayedCount) * rowStep -
+      MathLib.ToReal(rowCountData.value) * rowStep;
     if (maxY < 0.0) maxY = 0.0;
     frame.ScrollMax = vec2(0.0, maxY);
-    frame.Size = vec2(69.0, MathLib.ToReal(rowCountData.value) * 5.25);
+    frame.Size = vec2(69.0, MathLib.ToReal(rowCountData.value) * rowStep);
   });
   client.watch(finishesData, () => {
     if (finishesData.value.length > previousFinishes.value.length) {
@@ -171,12 +196,13 @@ function ClientBehavior({ surfaceColor }: { surfaceColor: string }) {
             finish.isPersonalBest ||
               finish.isLocalRecord ||
               finish.isWorldRecord,
+            clipFinish,
           );
         }
       }
     } else if (finishesData.value.length < previousFinishes.value.length) {
       for (const round of roundsData.value)
-        finishRow(round.login, 0, false, "", false);
+        finishRow(round.login, 0, false, "", false, clipFinish);
       for (const finish of finishesData.value) {
         let badge = "";
         if (finish.isPersonalBest) badge = "PB";
@@ -188,17 +214,18 @@ function ClientBehavior({ surfaceColor }: { surfaceColor: string }) {
           true,
           badge,
           finish.isPersonalBest || finish.isLocalRecord || finish.isWorldRecord,
+          clipFinish,
         );
       }
     } else if (finishesData.value.length === 0) {
       for (const round of roundsData.value)
-        finishRow(round.login, 0, false, "", false);
+        finishRow(round.login, 0, false, "", false, clipFinish);
     }
     previousFinishes.value = finishesData.value;
   });
   return null;
 }
-function LiveRoundWidget(props: WidgetRenderProps) {
+function DefaultLiveRoundWidget(props: WidgetRenderProps) {
   const surfaceColor = kit.useTokens().color.surface;
   return (
     <WidgetFrame {...props}>
@@ -305,6 +332,120 @@ function LiveRoundWidget(props: WidgetRenderProps) {
     </WidgetFrame>
   );
 }
+function BroadcastLiveRoundWidget(props: WidgetRenderProps) {
+  const surfaceColor = kit.useTokens().color.surface;
+  return (
+    <WidgetFrame {...props}>
+      <ClientBehavior surfaceColor={surfaceColor} rowStep={5} clipFinish />
+      <Panel tone="surface" size={[55, 5]} />
+      <Label
+        tone="text"
+        font="title"
+        pos={[1.5, -2.25]}
+        size={[40, 5]}
+        text="Live Round"
+        textprefix="$t"
+        valign="center"
+        textsize={0.9}
+      />
+      <framemodel id="round-row">
+        <Panel tone="surface" size={[5, 5]} />
+        <Panel tone="content" pos={[5, 0]} size={[35.5, 5]} />
+        <Panel tone="content" pos={[40.5, 0]} size={[14.5, 5]} />
+        <Label
+          tone="text"
+          font="title"
+          pos={[2.4, -2.25]}
+          size={[5, 5]}
+          text="0"
+          halign="center"
+          valign="center"
+          textsize={1.25}
+        />
+        <quad
+          pos={[6.25, -1]}
+          size={[4.5, 3]}
+          image="file://Media/Flags/WOR.dds"
+        />
+        <Label
+          tone="contentText"
+          font="body"
+          pos={[12, -2.25]}
+          size={[22, 5]}
+          text="-"
+          valign="center"
+          textsize={1.2}
+        />
+        <Label
+          tone="contentText"
+          font="title"
+          pos={[39.75, -2.25]}
+          size={[5, 5]}
+          text="0"
+          halign="right"
+          valign="center"
+          textsize={1}
+        />
+        <label
+          textcolor="FFF"
+          textfont="Oswald"
+          pos={[54, -2.25]}
+          size={[12.5, 5]}
+          text="--:--.---"
+          halign="right"
+          valign="center"
+          textsize={1}
+        />
+        <frame pos={[55, 0]} size={[14, 5]} z-index={-2}>
+          <frame pos={[-14, 0]} size={[14, 5]}>
+            <Panel tone="surface" size={[7, 5]} />
+            <Label
+              tone="text"
+              pos={[3.5, -2.25]}
+              size={[6, 5]}
+              text=""
+              halign="center"
+              valign="center"
+              textsize={1.25}
+            />
+            <Panel tone="surface" pos={[7, 0]} size={[7, 5]} hidden />
+            <Label
+              tone="record"
+              font="title"
+              pos={[10.5, -2.25]}
+              size={[6, 5]}
+              text="WR"
+              halign="center"
+              valign="center"
+              textsize={1.25}
+              hidden
+            />
+          </frame>
+        </frame>
+        <quad
+          class="trigger"
+          pos={[0, 0]}
+          z-index={-2}
+          size={[57, 5]}
+          opacity={0}
+          scriptevents
+          onClick={client.handler((event) => spectateRow(event))}
+        />
+      </framemodel>
+      <frame id="rounds" ref={roundsFrameRef} pos={[0, -5]} size={[69, 40]}>
+        <Panel tone="content" size={[55, 500]} opacity={0} scriptevents />
+        {Array.from({ length: ROWS }, (_, index) => (
+          <frameinstance modelid="round-row" pos={[0, -index * 5]} />
+        ))}
+      </frame>
+    </WidgetFrame>
+  );
+}
+const LiveRoundWidget = slot<WidgetRenderProps>(
+  "live-round/widget",
+  DefaultLiveRoundWidget,
+  { broadcast: BroadcastLiveRoundWidget },
+);
 function LiveRoundUpdate(props: WidgetRenderProps) {
   const data =
     (props.data as

@@ -17,6 +17,7 @@ import {
   kit,
 } from "@tmcontrolpanel/plugin-sdk/ui";
 import { Manialink } from "maniatsx";
+import { slot } from "maniatsx/theme";
 import { client, ml, Publish, type Integer } from "maniatsx/client";
 import { TextLib } from "maniatsx/maniascript";
 import { HELP_WIDTH, helpData } from "./help";
@@ -229,7 +230,7 @@ interface SignaturesActions {
 
 const ALERT = "F00";
 
-function SignaturesComponent(
+function DefaultSignatures(
   props: WidgetRenderProps & { actions: SignaturesActions },
 ) {
   const data = props.data as ReturnType<OpenplanetPlugin["windowData"]>;
@@ -289,6 +290,198 @@ function SignaturesComponent(
     </Page>
   );
 }
+
+// Stat and policy tiles across the full width, 1 unit apart
+function broadcastTiles(data: ReturnType<OpenplanetPlugin["windowData"]>) {
+  const tiles = [
+    ...data.stats.map((stat) => ({
+      label: stat.label,
+      value: String(stat.value),
+      alert: stat.alert ?? false,
+      numeric: true,
+      width: 15,
+    })),
+    {
+      label: "Signatures",
+      value: data.policy.signatures,
+      alert: false,
+      numeric: false,
+      width: 32,
+    },
+    {
+      label: "Min version",
+      value: data.policy.minVersion,
+      alert: false,
+      numeric: false,
+      width: 16,
+    },
+    {
+      label: "Action",
+      value: data.policy.action,
+      alert: false,
+      numeric: false,
+      width: 18,
+    },
+  ];
+  let x = 0;
+  return tiles.map((tile) => {
+    const placed = { ...tile, x };
+    x += tile.width + 1;
+    return placed;
+  });
+}
+
+function BroadcastSignatures(
+  props: WidgetRenderProps & { actions: SignaturesActions },
+) {
+  const data = props.data as ReturnType<OpenplanetPlugin["windowData"]>;
+  return (
+    <Page id={props.id}>
+      <ScriptPrelude />
+      <WindowFrame id={props.id} title={props.title} size={[120, 75]}>
+        <frame pos={[2, -2]} size={[116, 71]}>
+          {broadcastTiles(data).map((tile) => (
+            <frame pos={[tile.x, 0]} size={[tile.width, 7]}>
+              <quad size={[tile.width, 7]} bgcolor="000" opacity={0.4} />
+              <Label
+                tone="contentTextMuted"
+                font="title"
+                pos={[1.5, -2]}
+                size={[tile.width - 3, 3]}
+                text={tile.label.toUpperCase()}
+                valign="center2"
+                textsize={0.65}
+              />
+              <label
+                pos={[1.5, -5.2]}
+                size={[tile.width - 3, 4]}
+                text={tile.value}
+                valign="center2"
+                textsize={tile.numeric ? 1.6 : 1.2}
+                textfont="Oswald"
+                textcolor={tile.alert ? "F45" : "EEF"}
+              />
+            </frame>
+          ))}
+          <frame pos={[0, -9]} size={[116, 60]}>
+            <quad
+              size={[116, data.table.rowHeight]}
+              bgcolor="000"
+              opacity={0.4}
+            />
+            {data.table.columns.map((column) => (
+              <Label
+                tone="contentTextMuted"
+                font="title"
+                pos={[column.x, data.table.textY]}
+                size={[column.width, data.table.rowHeight]}
+                text={column.title.toUpperCase()}
+                halign={column.halign}
+                valign="center2"
+                textsize={0.75}
+              />
+            ))}
+            {data.table.rows.map((row) => (
+              <frame pos={[0, row.y]} size={[116, data.table.rowHeight]}>
+                {row.odd && (
+                  <quad
+                    size={[116, data.table.rowHeight]}
+                    bgcolor="FFF"
+                    opacity={0.05}
+                  />
+                )}
+                {row.cells[4]?.text !== "OK" && (
+                  <quad
+                    size={[116, data.table.rowHeight]}
+                    bgcolor="F45"
+                    opacity={0.1}
+                  />
+                )}
+                {row.cells.map((cell, i) => (
+                  <label
+                    pos={[cell.x, data.table.textY]}
+                    size={[cell.width, data.table.rowHeight]}
+                    text={cell.text}
+                    halign={cell.halign}
+                    valign="center2"
+                    textsize={0.9}
+                    textfont="RajdhaniMono"
+                    textcolor={
+                      i === 4
+                        ? cell.text === "OK"
+                          ? "3D8"
+                          : "F45"
+                        : i === 1
+                          ? cell.text === ""
+                            ? "3D8"
+                            : "F45"
+                          : "EEF"
+                    }
+                  />
+                ))}
+              </frame>
+            ))}
+            {data.table.pages !== 1 && (
+              <frame pos={[0, data.table.pagerY]} size={[116, 5]}>
+                <Label
+                  tone="contentText"
+                  font="body"
+                  pos={[1, -3]}
+                  size={[86, 4]}
+                  text={`${data.table.from}-${data.table.to} of ${data.table.total}`}
+                  valign="center2"
+                  textsize={0.9}
+                />
+                <Label
+                  tone="contentText"
+                  font="title"
+                  pos={[94, -3]}
+                  size={[10, 4]}
+                  text=" Prev"
+                  halign="center"
+                  valign="center2"
+                  textsize={0.9}
+                  {...(data.table.hasPrev
+                    ? { action: props.actions.prev }
+                    : { opacity: 0.3 })}
+                />
+                <Label
+                  tone="contentText"
+                  font="body"
+                  pos={[102, -3]}
+                  size={[6, 4]}
+                  text={`${data.table.page}/${data.table.pages}`}
+                  halign="center"
+                  valign="center2"
+                  textsize={0.9}
+                />
+                <Label
+                  tone="contentText"
+                  font="title"
+                  pos={[110, -3]}
+                  size={[6, 4]}
+                  text="Next "
+                  halign="center"
+                  valign="center2"
+                  textsize={0.9}
+                  {...(data.table.hasNext
+                    ? { action: props.actions.next }
+                    : { opacity: 0.3 })}
+                />
+              </frame>
+            )}
+          </frame>
+        </frame>
+      </WindowFrame>
+    </Page>
+  );
+}
+
+const SignaturesComponent = slot<
+  WidgetRenderProps & { actions: SignaturesActions }
+>("openplanet/signatures", DefaultSignatures, {
+  broadcast: BroadcastSignatures,
+});
 
 const STATUS_TEXT: Record<Violation, string> = {
   openplanet: "Openplanet not allowed",
@@ -664,6 +857,15 @@ class OpenplanetPlugin {
         })),
       table,
       rules: [allowed, enforcement.filter(Boolean).join("  ·  ")],
+      policy: {
+        signatures: !config.allowOpenplanet
+          ? "Not allowed"
+          : config.enforceSignatures
+            ? allowedSignatures(config).join(", ") || "None"
+            : "Any",
+        minVersion: config.minimumVersion.trim() || "Any",
+        action: config.enforcement,
+      },
       stats: [
         { label: "Players", value: players.length },
         {
