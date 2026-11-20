@@ -1,17 +1,4 @@
-import {
-  definePlugin,
-  getSpectatorStatus,
-  getTeamColors,
-  throttle,
-  type LiveInfo,
-  type PlayerInfo,
-  type PlayerRound,
-  type PluginContext,
-  type Scores,
-  type TeamColors,
-  type Widget,
-  type WidgetRenderProps,
-} from "@tmcontrolpanel/plugin-sdk";
+import type { WidgetRenderProps } from "@tmcontrolpanel/plugin-sdk";
 import { Label, Panel, WidgetFrame, kit } from "@tmcontrolpanel/plugin-sdk/ui";
 import { Manialink } from "maniatsx";
 import { slot } from "maniatsx/theme";
@@ -27,26 +14,7 @@ import {
   vec2,
 } from "maniatsx/maniascript";
 
-interface TeamColor {
-  mainColor: string;
-  secondaryColor: string;
-  textColor: string;
-}
-
-interface ClientRanking {
-  login: string;
-  name: string;
-  rank: Integer;
-  points: Integer;
-  team: TeamColor;
-}
-
-type Ranking = Omit<ClientRanking, "rank" | "points"> & {
-  rank: number;
-  points: number;
-};
-
-interface PublishedRanking extends ClientRanking {}
+import type { PublishedRanking, Ranking } from "./types";
 
 const EMPTY_RANKINGS: PublishedRanking[] = [];
 const rankings = client.shared<PublishedRanking[]>("rankings", EMPTY_RANKINGS);
@@ -294,13 +262,13 @@ function BroadcastLiveRankingWidget(props: WidgetRenderProps) {
     </WidgetFrame>
   );
 }
-const LiveRankingWidget = slot<WidgetRenderProps>(
+export const LiveRankingWidget = slot<WidgetRenderProps>(
   "live-ranking/widget",
   DefaultLiveRankingWidget,
   { broadcast: BroadcastLiveRankingWidget },
 );
 
-function LiveRankingUpdate(props: WidgetRenderProps) {
+export function LiveRankingUpdate(props: WidgetRenderProps) {
   const data =
     (props.data as
       | { rankings?: Ranking[]; mode?: string; pointsLimit?: number }
@@ -316,143 +284,3 @@ function LiveRankingUpdate(props: WidgetRenderProps) {
     </Manialink>
   );
 }
-
-class LiveRankingPlugin {
-  private readonly widget: Widget;
-  private rankings: Ranking[] = [];
-  private pointsLimit = -1;
-  private readonly render: () => void;
-
-  constructor(private readonly ctx: PluginContext) {
-    this.widget = ctx.ui.widget({
-      id: "live-ranking-widget",
-      component: LiveRankingWidget,
-      updateComponent: LiveRankingUpdate,
-      position: { x: 100, y: 55 },
-    });
-    this.render = throttle(ctx, () => this.send(), 100);
-
-    ctx.on("scores", (scores) => this.onScores(scores));
-    ctx.on("beginMatch", () => this.reset());
-    ctx.on("playerConnect", (player) => this.onPlayerConnect(player));
-    ctx.on("playerDisconnect", (login) => this.onPlayerDisconnect(login));
-    ctx.on("playerInfo", (player) => this.onPlayerInfo(player));
-    ctx.on("updatedSettings", (info) => this.onUpdatedSettings(info));
-    ctx.on("playerUpdated", (round) => this.onPlayerUpdated(round));
-  }
-
-  async start() {
-    this.widget.display();
-    await this.reset();
-  }
-
-  private teamColors(teamId: number): TeamColors {
-    return getTeamColors(this.ctx.live.liveInfo.teams?.[teamId]?.name);
-  }
-
-  private isSpectating(player: PlayerInfo): boolean {
-    return (
-      getSpectatorStatus(player.spectatorStatus).spectator ||
-      this.ctx.live.reverseCupGetPlayerStatus(player.login).spectator
-    );
-  }
-
-  private onPlayerConnect(player: PlayerInfo) {
-    if (
-      this.isSpectating(player) ||
-      this.rankings.some((r) => r.login === player.login)
-    )
-      return;
-    this.rankings.push({
-      login: player.login,
-      name: player.nickName,
-      rank: 0,
-      points: 0,
-      team: this.teamColors(player.teamId),
-    });
-    this.render();
-  }
-
-  private onPlayerDisconnect(login: string) {
-    if (!this.rankings.some((r) => r.login === login)) return;
-    this.rankings = this.rankings.filter((r) => r.login !== login);
-    this.render();
-  }
-
-  private onPlayerInfo(player: PlayerInfo) {
-    const ranking = this.rankings.find((r) => r.login === player.login);
-    if (this.isSpectating(player)) {
-      if (!ranking || ranking.points > 0) return;
-      this.rankings = this.rankings.filter((r) => r.login !== player.login);
-    } else if (!ranking) {
-      this.rankings.push({
-        login: player.login,
-        name: player.nickName,
-        rank: 0,
-        points: 0,
-        team: this.teamColors(player.teamId),
-      });
-    } else {
-      ranking.name = player.nickName;
-      ranking.team = this.teamColors(player.teamId);
-    }
-    this.render();
-  }
-
-  private onPlayerUpdated(round: PlayerRound) {
-    const ranking = this.rankings.find((r) => r.login === round.login);
-    if (!ranking) return;
-    ranking.points = round.matchPoints;
-    this.render();
-  }
-
-  private onUpdatedSettings(info: LiveInfo) {
-    this.pointsLimit = info.pointsLimit || -1;
-    this.render();
-  }
-
-  private onScores(scores: Scores) {
-    if (
-      scores.responseid !== this.ctx.pluginId &&
-      scores.section !== "EndRound"
-    )
-      return;
-    const { liveInfo } = this.ctx.live;
-    this.rankings = [];
-    for (const player of scores.players) {
-      if (liveInfo.type === "reversecup" && player.matchpoints === -10000)
-        continue;
-      if (player.matchpoints === 0) {
-        const active = this.ctx.live.findActivePlayer(player.login);
-        if (!active || getSpectatorStatus(active.spectatorStatus).spectator)
-          continue;
-      }
-      this.rankings.push({
-        rank: 0,
-        login: player.login,
-        name: player.name,
-        points: player.matchpoints,
-        team: getTeamColors(liveInfo.teams?.[player.team]?.name),
-      });
-    }
-    this.render();
-  }
-
-  private async reset() {
-    this.pointsLimit = this.ctx.live.liveInfo.pointsLimit || -1;
-    await this.ctx.gbx.callScript("Trackmania.GetScores", this.ctx.pluginId);
-  }
-
-  private send() {
-    this.rankings.sort((a, b) => b.points - a.points);
-    this.rankings.forEach((ranking, index) => (ranking.rank = index + 1));
-    this.widget.setData({
-      rankings: this.rankings,
-      mode: this.ctx.live.liveInfo.type,
-      pointsLimit: this.pointsLimit,
-    });
-    this.widget.update();
-  }
-}
-
-export default definePlugin({ create: (ctx) => new LiveRankingPlugin(ctx) });

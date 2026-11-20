@@ -1,7 +1,7 @@
 {
   "slug": "ta-leaderboard",
   "name": "Time Attack Leaderboard",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "sdk": 5,
   "description": "A widget that shows the time attack leaderboard for the current map.",
   "author": "TMControlPanel",

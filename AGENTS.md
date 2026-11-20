@@ -58,6 +58,10 @@ assumes a published SDK; use the root tooling above in this repository.
 - Source belongs in `plugins/<slug>/src/index.ts`, Handlebars manialinks in
   `templates/`, and the manifest in `tmcp-plugin.json`. Optional `plugin.json`
   holds marketplace metadata such as tags and screenshots, not runtime settings.
+- TSX plugins keep the plugin and the Manialink apart: `src/index.ts` holds
+  `definePlugin` and the server-side plugin class (no JSX), `src/ui.tsx` the
+  client state, scripts, components, theme slots and update pages, and
+  `src/types.ts` any data shapes both files share.
 - Choose a unique slug and command names; do not reuse Hello's identity or reserved
   first-party/native names. Set accurate author, description, repository and help text.
 - Use TypeScript and `definePlugin` from `@tmcontrolpanel/plugin-sdk`. Register
