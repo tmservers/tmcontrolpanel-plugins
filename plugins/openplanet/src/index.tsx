@@ -291,6 +291,46 @@ function DefaultSignatures(
   );
 }
 
+// Stat and policy tiles across the full width, 1 unit apart
+function broadcastTiles(data: ReturnType<OpenplanetPlugin["windowData"]>) {
+  const tiles = [
+    ...data.stats.map((stat) => ({
+      label: stat.label,
+      value: String(stat.value),
+      alert: stat.alert ?? false,
+      numeric: true,
+      width: 15,
+    })),
+    {
+      label: "Signatures",
+      value: data.policy.signatures,
+      alert: false,
+      numeric: false,
+      width: 32,
+    },
+    {
+      label: "Min version",
+      value: data.policy.minVersion,
+      alert: false,
+      numeric: false,
+      width: 16,
+    },
+    {
+      label: "Action",
+      value: data.policy.action,
+      alert: false,
+      numeric: false,
+      width: 18,
+    },
+  ];
+  let x = 0;
+  return tiles.map((tile) => {
+    const placed = { ...tile, x };
+    x += tile.width + 1;
+    return placed;
+  });
+}
+
 function BroadcastSignatures(
   props: WidgetRenderProps & { actions: SignaturesActions },
 ) {
@@ -300,102 +340,29 @@ function BroadcastSignatures(
       <ScriptPrelude />
       <WindowFrame id={props.id} title={props.title} size={[120, 75]}>
         <frame pos={[2, -2]} size={[116, 71]}>
-          {data.stats.map((stat, i) => (
-            <frame pos={[i * 24, 0]} size={[22, 7]}>
-              <quad size={[22, 7]} bgcolor="000" opacity={0.4} />
+          {broadcastTiles(data).map((tile) => (
+            <frame pos={[tile.x, 0]} size={[tile.width, 7]}>
+              <quad size={[tile.width, 7]} bgcolor="000" opacity={0.4} />
               <Label
                 tone="contentTextMuted"
                 font="title"
                 pos={[1.5, -2]}
-                size={[19, 3]}
-                text={stat.label.toUpperCase()}
+                size={[tile.width - 3, 3]}
+                text={tile.label.toUpperCase()}
                 valign="center2"
                 textsize={0.65}
               />
               <label
                 pos={[1.5, -5.2]}
-                size={[19, 4]}
-                text={String(stat.value)}
+                size={[tile.width - 3, 4]}
+                text={tile.value}
                 valign="center2"
-                textsize={1.6}
+                textsize={tile.numeric ? 1.6 : 1.2}
                 textfont="Oswald"
-                textcolor={stat.alert ? "F45" : "EEF"}
+                textcolor={tile.alert ? "F45" : "EEF"}
               />
             </frame>
           ))}
-          <frame pos={[76, 0]} size={[40, 7]}>
-            <Label
-              tone="contentTextMuted"
-              font="title"
-              pos={[0, -1.8]}
-              size={[9, 2.5]}
-              text="POLICY"
-              valign="center2"
-              textsize={0.6}
-            />
-            <quad
-              pos={[9, -0.4]}
-              size={[31, 2.5]}
-              bgcolor="000"
-              opacity={0.4}
-            />
-            <label
-              pos={[10, -1.8]}
-              size={[29, 2.5]}
-              text={data.rules[0].replace(/^Signatures: /, "")}
-              textsize={0.7}
-              textcolor="FFF"
-              valign="center2"
-            />
-            <Label
-              tone="contentTextMuted"
-              font="title"
-              pos={[0, -4.6]}
-              size={[6, 2.5]}
-              text="MIN"
-              valign="center2"
-              textsize={0.6}
-            />
-            <quad
-              pos={[6, -3.1]}
-              size={[12, 2.5]}
-              bgcolor="000"
-              opacity={0.4}
-            />
-            <label
-              pos={[6.8, -4.6]}
-              size={[10, 2.5]}
-              text={
-                data.rules[1].split("  ·  ")[0]?.replace(/^Min /, "") || "—"
-              }
-              textsize={0.65}
-              textcolor="FFF"
-              valign="center2"
-            />
-            <Label
-              tone="contentTextMuted"
-              font="title"
-              pos={[20, -4.6]}
-              size={[9, 2.5]}
-              text="ACTION"
-              valign="center2"
-              textsize={0.6}
-            />
-            <quad
-              pos={[29, -3.1]}
-              size={[11, 2.5]}
-              bgcolor="000"
-              opacity={0.4}
-            />
-            <label
-              pos={[29.8, -4.6]}
-              size={[10, 2.5]}
-              text={data.rules[1].split("Action: ").at(-1) ?? ""}
-              textsize={0.65}
-              textcolor="F45"
-              valign="center2"
-            />
-          </frame>
           <frame pos={[0, -9]} size={[116, 60]}>
             <quad
               size={[116, data.table.rowHeight]}
@@ -890,6 +857,15 @@ class OpenplanetPlugin {
         })),
       table,
       rules: [allowed, enforcement.filter(Boolean).join("  ·  ")],
+      policy: {
+        signatures: !config.allowOpenplanet
+          ? "Not allowed"
+          : config.enforceSignatures
+            ? allowedSignatures(config).join(", ") || "None"
+            : "Any",
+        minVersion: config.minimumVersion.trim() || "Any",
+        action: config.enforcement,
+      },
       stats: [
         { label: "Players", value: players.length },
         {

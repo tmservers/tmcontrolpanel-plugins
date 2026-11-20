@@ -316,7 +316,7 @@ function Behavior({ contentColor }: { contentColor: string }) {
 }
 
 // The large map/position number, in the template's GameFontBlack (not a kit font)
-function BigNumber(props: { text: string }) {
+function BigNumber(props: { text: string; broadcast?: boolean }) {
   const { color } = kit.useTokens();
   return (
     <label
@@ -325,9 +325,9 @@ function BigNumber(props: { text: string }) {
       text={props.text}
       halign="center"
       valign="center"
-      textsize={3}
+      textsize={props.broadcast ? 2.5 : 3}
       textcolor={color.text}
-      textfont="GameFontBlack"
+      textfont={props.broadcast ? "Oswald" : "GameFontBlack"}
     />
   );
 }
@@ -344,12 +344,12 @@ function MatchWidgetLayout(props: WidgetRenderProps, broadcast: boolean) {
         <Label
           tone="text"
           font={broadcast ? "title" : "body"}
-          pos={[5, -4.75]}
-          size={[10, 10]}
+          pos={broadcast ? [2.5, -4.75] : [5, -4.75]}
+          size={broadcast ? [20, 10] : [10, 10]}
           text={broadcast ? "PICK & BAN" : ""}
-          halign="center"
+          halign={broadcast ? "left" : "center"}
           valign="center"
-          textsize={broadcast ? 0.9 : 2.5}
+          textsize={broadcast ? 1.3 : 2.5}
         />
         <Label
           tone="text"
@@ -358,7 +358,7 @@ function MatchWidgetLayout(props: WidgetRenderProps, broadcast: boolean) {
           size={broadcast ? [80, 5] : [94, 5]}
           text="Marijn. is picking a map"
           valign="center"
-          textsize={broadcast ? 1 : 1.75}
+          textsize={broadcast ? 1.4 : 1.75}
         />
         <Label
           tone="text"
@@ -370,7 +370,11 @@ function MatchWidgetLayout(props: WidgetRenderProps, broadcast: boolean) {
           valign="center"
           textsize={1.75}
         />
-        <Panel tone="content" pos={[0, -9]} size={[120, 1]} opacity={0} />
+        {broadcast ? (
+          <quad pos={[0, -9]} size={[120, 1]} bgcolor="FFF" opacity={0} />
+        ) : (
+          <Panel tone="content" pos={[0, -9]} size={[120, 1]} opacity={0} />
+        )}
         {broadcast && (
           <quad pos={[0, 0]} size={[24, 10]} bgcolor="FFF" opacity={0.08} />
         )}
@@ -378,25 +382,25 @@ function MatchWidgetLayout(props: WidgetRenderProps, broadcast: boolean) {
       <framemodel id="map-info">
         <Panel tone="surface" size={[10, 10]} />
         <Panel tone="content" pos={[10, 0]} size={[90, 10]} />
-        <BigNumber text="" />
+        <BigNumber text="" broadcast={broadcast} />
         <Label
           tone="contentText"
           font="title"
-          pos={broadcast ? [12, -5] : [12, -5.25]}
+          pos={broadcast ? [12, -5.5] : [12, -5.25]}
           size={[41, 5]}
           text="-"
-          textsize={broadcast ? 1.2 : 1.75}
+          textsize={broadcast ? 1.6 : 1.75}
           valign="bottom"
         />
         <Label
           tone="contentText"
           font="body"
-          pos={broadcast ? [12, -7.5] : [11.75, -5.5]}
+          pos={broadcast ? [12, -6] : [11.75, -5.5]}
           size={[41, 5]}
           text="-"
           textprefix="$i"
           valign="top"
-          textsize={1}
+          textsize={broadcast ? 0.8 : 1}
         />
         <Label
           tone="contentText"
@@ -404,7 +408,7 @@ function MatchWidgetLayout(props: WidgetRenderProps, broadcast: boolean) {
           pos={[95, -4.75]}
           size={[41, 5]}
           text=""
-          textsize={1.75}
+          textsize={broadcast ? 1.2 : 1.75}
           valign="center"
           halign="right"
         />
@@ -500,7 +504,7 @@ function ChoosePositionWindowLayout(
           {(data.positionsAvailable ?? []).map((position, index) => (
             <frame pos={[index * 12, 0]} size={[10, 10]}>
               <Panel tone={broadcast ? "content" : "surface"} size={[10, 10]} />
-              <BigNumber text={String(position)} />
+              <BigNumber text={String(position)} broadcast={broadcast} />
               {broadcast ? (
                 <quad
                   pos={[0, 0]}

@@ -166,7 +166,7 @@ function BroadcastActiveRunsWidget(props: WidgetRenderProps) {
       />
       <framemodel id="run-row">
         <Panel tone="content" size={[40.5, 5]} />
-        <quad pos={[40.5, 0]} size={[14.5, 5]} bgcolor="FFF" opacity={0.05} />
+        <Panel tone="content" pos={[40.5, 0]} size={[14.5, 5]} />
         <quad
           pos={[1.25, -1]}
           size={[4.5, 3]}
@@ -191,9 +191,9 @@ function BroadcastActiveRunsWidget(props: WidgetRenderProps) {
           valign="center"
           textsize={1}
         />
-        <Label
-          tone="contentText"
-          font="title"
+        <label
+          textcolor="FFF"
+          textfont="Oswald"
           pos={[54, -2.25]}
           size={[12.5, 5]}
           text="--:--.---"
