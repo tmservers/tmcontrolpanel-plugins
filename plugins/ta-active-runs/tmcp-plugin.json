@@ -1,7 +1,7 @@
 {
   "slug": "ta-active-runs",
   "name": "Time Attack Active Runs",
-  "version": "2.1.0",
+  "version": "2.1.3",
   "sdk": 5,
   "description": "A widget that shows the active time attack runs on the server.",
   "author": "TMControlPanel",
