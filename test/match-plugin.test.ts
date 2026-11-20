@@ -108,7 +108,9 @@ describe("match plugin", () => {
     await h.clock.advance(30_000);
     expect(
       broadcast(h).some((m) =>
-        /Nick p1 ran out of time, .* was randomly banned/.test(String(m)),
+        /\$<Nick p1\$> ran out of time, \$<.*\$> was randomly banned/.test(
+          String(m),
+        ),
       ),
     ).toBe(true);
   });
@@ -156,7 +158,7 @@ describe("match plugin", () => {
     expect(
       h.session.callsTo("TriggerModeScriptEventArray").at(-1)?.params,
     ).toEqual(["Maniaplanet.Pause.SetActive", ["true"]]);
-    expect(broadcast(h)).toContain("Match paused by Nick admin");
+    expect(broadcast(h)).toContain("Match paused by $<Nick admin$>");
   });
 
   it("stops the match and returns to the lobby map", async () => {

@@ -259,7 +259,7 @@ export class MatchPlugin {
       await this.ctx.server.setPaused(pause);
       this.emit("pauseChanged", { paused: pause, login });
       await this.ctx.chat.send(
-        `Match ${pause ? "paused" : "unpaused"} by ${player?.nickName || login}`,
+        `Match ${pause ? "paused" : "unpaused"} by $<${player?.nickName || login}$>`,
       );
     });
   }
@@ -524,7 +524,7 @@ export class MatchPlugin {
     if (turn.action !== "random")
       this.emitSelection(turn.action, map, turn.nickName, true);
     await this.ctx.chat.send(
-      `${turn.nickName || "The current player"} ran out of time, ${map.name} was randomly ${
+      `$<${turn.nickName || "The current player"}$> ran out of time, $<${map.name}$> was randomly ${
         turn.action === "ban" ? "banned" : "picked"
       } for them`,
     );
