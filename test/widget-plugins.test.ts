@@ -451,7 +451,7 @@ describe("live-round", () => {
     });
     await h.script("Trackmania.Event.WayPoint", finish("b", 31000));
     await h.script("Trackmania.Event.WayPoint", finish("a", 30000));
-    await h.clock.advance(100);
+    await h.clock.advance(250);
 
     const update = h.session.lastManialink(
       page("live-round", "live-round-widget-update"),
@@ -472,11 +472,11 @@ describe("live-round", () => {
     expect(update!).toContain("isLocalRecord = False");
   });
 
-  it("sends at most one widget update per 100 ms", async () => {
+  it("sends at most one widget update per 250 ms", async () => {
     const h = await withPackage("live-round", {
       players: [player("a"), player("b")],
     });
-    await h.clock.advance(100);
+    await h.clock.advance(250);
     const updates = () =>
       h.session
         .sentManialinkIds()
@@ -500,7 +500,7 @@ describe("live-round", () => {
       });
     }
     expect(updates() - before).toBe(perSend);
-    await h.clock.advance(100);
+    await h.clock.advance(250);
     expect(updates() - before).toBe(2 * perSend);
   });
 });

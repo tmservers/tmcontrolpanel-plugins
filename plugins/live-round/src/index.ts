@@ -50,6 +50,7 @@ class LiveRoundPlugin {
   private personalBests: Record<string, number> = {};
 
   private readonly render: () => void;
+  private lastSent = "";
 
   constructor(private readonly ctx: PluginContext<Config>) {
     this.widget = ctx.ui.widget({
@@ -58,7 +59,8 @@ class LiveRoundPlugin {
       updateComponent: LiveRoundUpdate,
       position: { x: -156, y: 73.5 },
     });
-    this.render = throttle(ctx, () => this.send(), 100);
+    // Each render costs real sandbox CPU, so batch bursts of checkpoints
+    this.render = throttle(ctx, () => this.send(), 250);
 
     ctx.on("beginMap", () => this.onBeginMap());
     ctx.on("beginMatch", () => this.reset());
@@ -358,8 +360,8 @@ class LiveRoundPlugin {
     this.rounds = sortRoundEntries(this.rounds);
     this.rounds.forEach((round, index) => (round.rank = index + 1));
 
-    const rankOf = (login: string) =>
-      this.rounds.find((r) => r.login === login)?.rank;
+    const ranks = new Map(this.rounds.map((r) => [r.login, r.rank]));
+    const rankOf = (login: string) => ranks.get(login);
     this.finishes.sort(
       (a, b) => (rankOf(a.login) ?? 0) - (rankOf(b.login) ?? 0),
     );
@@ -391,14 +393,14 @@ class LiveRoundPlugin {
     });
 
     let minDelta = 0;
+    const globalLast = Math.max(
+      ...this.rounds.flatMap((entry) => entry.checkpoints.slice(-1)),
+    );
     const roundRows = this.rounds.map((round, index) => {
       const leader = this.rounds[0];
       let gap = 0;
       if (index > 0 && round.checkpoints.length > 0) {
         const checkpoint = round.checkpoints.length - 1;
-        const globalLast = Math.max(
-          ...this.rounds.flatMap((entry) => entry.checkpoints.slice(-1)),
-        );
         if (leader.checkpoints.length > checkpoint + 1)
           gap = Math.max(
             round.checkpoints[checkpoint] - leader.checkpoints[checkpoint],
@@ -455,11 +457,16 @@ class LiveRoundPlugin {
       ...finish,
       localRecordText: config?.localRecordText || "LR",
     }));
-    this.widget.setData({
+    const data = {
       rounds: roundRows,
       finishes: finishRows,
       rowCount: config?.rowCount || 8,
-    });
+    };
+    // Skip the render when nothing visible changed
+    const key = JSON.stringify(data);
+    if (key === this.lastSent) return;
+    this.lastSent = key;
+    this.widget.setData(data);
     this.widget.update();
   }
 
