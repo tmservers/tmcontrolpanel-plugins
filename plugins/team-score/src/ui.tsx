@@ -16,7 +16,6 @@ import {
   CMlQuad,
   ColorLib,
   TextLib,
-  vec2,
   vec3,
 } from "maniatsx/maniascript";
 import type { CustomTeam, WidgetState } from "./score";
@@ -97,13 +96,7 @@ const updateSide = client.fn((team: ClientTeam, side: Integer): void => {
     TextLib.ToText(team.points),
   );
   const nameLabel = frame.GetFirstChild("name" + suffix) as CMlLabel;
-  const name = wrapName(nameLabel, team.name, nameLabel.Size.X);
-  nameLabel.SetText(name);
-  // Top-aligned so a wrapped name stays centred on the name panel
-  nameLabel.RelativePosition_V3 = vec2(
-    nameLabel.RelativePosition_V3.X,
-    -4.75 + nameLabel.ComputeHeight(name) / 2.0,
-  );
+  nameLabel.SetText(wrapName(nameLabel, team.name, nameLabel.Size.X));
   const logo = frame.GetFirstChild("logo" + suffix) as CMlQuad;
   if (team.logo !== "") {
     logo.ImageUrl = team.logo;
@@ -162,7 +155,7 @@ function TeamScoreClient() {
 }
 
 function DefaultTeamScoreWidget(props: WidgetRenderProps) {
-  const { color } = kit.useTokens();
+  const { color, font } = kit.useTokens();
   return (
     <WidgetFrame {...props}>
       <TeamScoreClient />
@@ -177,15 +170,16 @@ function DefaultTeamScoreWidget(props: WidgetRenderProps) {
           keepratio="Fit"
           hidden
         />
-        <Label
+        <label
           id="name-0"
-          tone="contentText"
-          font="title"
+          textcolor={color.contentText}
+          textfont={font.title}
           pos={[12, -4.75]}
           size={[25.5, 10]}
           text=""
           textsize={1.75}
-          valign="top"
+          valign="center"
+          maxline={2}
         />
         <quad
           id="lead-0"
@@ -247,15 +241,16 @@ function DefaultTeamScoreWidget(props: WidgetRenderProps) {
           keepratio="Fit"
           hidden
         />
-        <Label
+        <label
           id="name-1"
-          tone="contentText"
-          font="title"
+          textcolor={color.contentText}
+          textfont={font.title}
           pos={[102, -4.75]}
           size={[25.5, 10]}
           text=""
           halign="right"
-          valign="top"
+          valign="center"
+          maxline={2}
           textsize={1.75}
         />
         <quad
@@ -305,16 +300,17 @@ function BroadcastTeamScoreWidget(props: WidgetRenderProps) {
           keepratio="Fit"
           hidden
         />
-        <Label
+        <label
           id="name-0"
-          tone="contentText"
-          font="body"
+          textcolor={color.contentText}
+          textfont={font.body}
           pos={[12, -4.75]}
           size={[25.5, 10]}
           text=""
           textprefix="$t"
           textsize={1.75}
-          valign="top"
+          valign="center"
+          maxline={2}
         />
         <quad
           id="lead-0"
@@ -376,16 +372,17 @@ function BroadcastTeamScoreWidget(props: WidgetRenderProps) {
           keepratio="Fit"
           hidden
         />
-        <Label
+        <label
           id="name-1"
-          tone="contentText"
-          font="body"
+          textcolor={color.contentText}
+          textfont={font.body}
           pos={[102, -4.75]}
           size={[25.5, 10]}
           text=""
           textprefix="$t"
           halign="right"
-          valign="top"
+          valign="center"
+          maxline={2}
           textsize={1.75}
         />
         <quad
