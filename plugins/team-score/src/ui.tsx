@@ -16,6 +16,7 @@ import {
   CMlQuad,
   ColorLib,
   TextLib,
+  vec2,
   vec3,
 } from "maniatsx/maniascript";
 import type { CustomTeam, WidgetState } from "./score";
@@ -96,7 +97,13 @@ const updateSide = client.fn((team: ClientTeam, side: Integer): void => {
     TextLib.ToText(team.points),
   );
   const nameLabel = frame.GetFirstChild("name" + suffix) as CMlLabel;
-  nameLabel.SetText(wrapName(nameLabel, team.name, nameLabel.Size.X));
+  const name = wrapName(nameLabel, team.name, nameLabel.Size.X);
+  nameLabel.SetText(name);
+  // Top-aligned so a wrapped name stays centred on the name panel
+  nameLabel.RelativePosition_V3 = vec2(
+    nameLabel.RelativePosition_V3.X,
+    -4.75 + nameLabel.ComputeHeight(name) / 2.0,
+  );
   const logo = frame.GetFirstChild("logo" + suffix) as CMlQuad;
   if (team.logo !== "") {
     logo.ImageUrl = team.logo;
@@ -178,7 +185,7 @@ function DefaultTeamScoreWidget(props: WidgetRenderProps) {
           size={[25.5, 10]}
           text=""
           textsize={1.75}
-          valign="center"
+          valign="top"
         />
         <quad
           id="lead-0"
@@ -248,7 +255,7 @@ function DefaultTeamScoreWidget(props: WidgetRenderProps) {
           size={[25.5, 10]}
           text=""
           halign="right"
-          valign="center"
+          valign="top"
           textsize={1.75}
         />
         <quad
@@ -307,7 +314,7 @@ function BroadcastTeamScoreWidget(props: WidgetRenderProps) {
           text=""
           textprefix="$t"
           textsize={1.75}
-          valign="center"
+          valign="top"
         />
         <quad
           id="lead-0"
@@ -378,7 +385,7 @@ function BroadcastTeamScoreWidget(props: WidgetRenderProps) {
           text=""
           textprefix="$t"
           halign="right"
-          valign="center"
+          valign="top"
           textsize={1.75}
         />
         <quad
