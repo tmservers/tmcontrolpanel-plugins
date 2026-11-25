@@ -1,0 +1,6 @@
+{
+  "url": "live-round-2.1.10.zip",
+  "sha256": "d68009d4464d211054a4b0e8cb35eb5cea470c18a1f21fa254048024b4593194",
+  "publishedAt": "2026-11-25T19:36:36.024Z",
+  "changelog": "Players show up right away when they join, and their personal bests are requested together. Personal bests of the previous map are no longer kept."
+}

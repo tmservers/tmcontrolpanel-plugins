@@ -1,9 +1,9 @@
 {
   "slug": "ecm",
   "name": "eCircuitMania",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "sdk": 5,
-  "description": "Sends rounds and finishes to eCircuitMania while a match is being recorded.",
+  "description": "Sends rounds and optionally finishes to eCircuitMania while a match is being recorded.",
   "author": "TMControlPanel",
   "license": "MIT",
   "repository": "https://github.com/MRegterschot/tmcontrolpanel-plugins",
@@ -12,7 +12,7 @@
     "ui",
     "http:us-central1-fantasy-trackmania.cloudfunctions.net"
   ],
-  "helpText": "This plugin sends rounds and finish data to eCircuitMania.\nCommands:\n/ecm - Opens the eCircuitMania window",
+  "helpText": "This plugin sends round results, and finishes if enabled, to eCircuitMania.\nCommands:\n/ecm - Opens the eCircuitMania window",
   "configSchema": {
     "type": "object",
     "properties": {
@@ -25,6 +25,12 @@
       "isRecording": {
         "type": "boolean",
         "title": "Record results",
+        "default": false
+      },
+      "sendFinishes": {
+        "type": "boolean",
+        "title": "Send player finishes",
+        "description": "Also send every finish during a round. Round results are always sent while recording.",
         "default": false
       },
       "editors": {

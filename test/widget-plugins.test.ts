@@ -522,7 +522,7 @@ describe("ecm", () => {
   it("reports finishes to eCircuitMania only while recording", async () => {
     const h = await withPackage("ecm", {
       players: [player("p1")],
-      config: { apiKey: "m_t", isRecording: false },
+      config: { apiKey: "m_t", isRecording: false, sendFinishes: true },
     });
     await h.script("Trackmania.Event.WayPoint", finish("p1", 30000));
     expect(h.http.requests).toEqual([]);
@@ -530,6 +530,7 @@ describe("ecm", () => {
     h.servers.servers.get("server-1")!.plugins[0].config = {
       apiKey: "m_t",
       isRecording: true,
+      sendFinishes: true,
     };
     await h.runtime.refreshPlugins();
     await h.script("Trackmania.Event.WayPoint", finish("p1", 30000));
@@ -547,7 +548,37 @@ describe("ecm", () => {
     ]);
   });
 
-  it("reports failed eCircuitMania requests to Sentry without the key", async () => {
+  it("sends only round results when an existing config has no finishes option", async () => {
+    const h = await withPackage("ecm", {
+      players: [player("p1")],
+      config: { apiKey: "m_t", isRecording: true },
+    });
+    await h.script("Trackmania.Event.WayPoint", finish("p1", 30000));
+    expect(h.http.requests).toEqual([]);
+
+    await h.script("Trackmania.Scores", {
+      responseid: "",
+      section: "EndRound",
+      useteams: false,
+      teams: [],
+      players: [
+        {
+          login: "p1",
+          accountid: "acc-p1",
+          name: "P1",
+          team: 0,
+          matchpoints: 10,
+          prevracetime: 30000,
+          bestracetime: 30000,
+        },
+      ],
+    });
+    expect(ecmRequests(h).map((r) => r.url)).toEqual([
+      expect.stringContaining("/match-addRound?matchId=m"),
+    ]);
+  });
+
+  it("reports eCircuitMania requests that fail twice to Sentry with the match id and token", async () => {
     const reports: {
       error: unknown;
       context: {
@@ -557,17 +588,24 @@ describe("ecm", () => {
     }[] = [];
     const h = await withPackage("ecm", {
       players: [player("p1")],
-      config: { apiKey: "m_secret", isRecording: true },
+      config: { apiKey: "m_secret", isRecording: true, sendFinishes: true },
       errors: {
         captureException: (error, context) => reports.push({ error, context }),
       },
     });
     h.http.response = { status: 500, headers: {}, body: "boom" };
     await h.script("Trackmania.Event.WayPoint", finish("p1", 30000));
+    expect(reports).toEqual([]);
+    await h.clock.advance(2000);
+    expect(h.http.requests).toHaveLength(2);
+
     h.http.fetch = async () => {
       throw new Error("timeout");
     };
     await h.script("Trackmania.Event.WayPoint", finish("p1", 31000));
+    expect(reports).toHaveLength(1);
+    await h.clock.advance(2000);
+    await h.clock.advance(10_000);
 
     expect(reports.map((r) => (r.error as Error).message)).toEqual([
       "eCircuitMania match-addRoundTime returned 500",
@@ -577,15 +615,18 @@ describe("ecm", () => {
       endpoint: "match-addRoundTime",
       status: 500,
       body: "boom",
+      matchId: "m",
+      token: "secret",
     });
     expect(reports[1].context.extra).toEqual({
       endpoint: "match-addRoundTime",
+      matchId: "m",
+      token: "secret",
     });
     expect(reports[0].context.tags).toMatchObject({
       plugin: "ecm",
       source: "plugin",
     });
-    expect(JSON.stringify(reports)).not.toContain("secret");
   });
 
   it("lets editors toggle recording and save the key from the in-game window", async () => {

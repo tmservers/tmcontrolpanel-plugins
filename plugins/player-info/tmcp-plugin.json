@@ -1,7 +1,7 @@
 {
   "slug": "player-info",
   "name": "Player Info",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "sdk": 5,
   "description": "A widget that shows information about the spectated player. This includes their name, personal best and optionally device and camera.",
   "author": "TMControlPanel",

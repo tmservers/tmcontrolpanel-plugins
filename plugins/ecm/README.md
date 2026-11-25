@@ -1,6 +1,6 @@
 # eCircuitMania
 
-Sends rounds and finishes to eCircuitMania while a match is being recorded. Failed requests are logged and reported to the panel's Sentry (when the operator set one up), without the match id or token.
+Sends round results to eCircuitMania while a match is being recorded. Turn on "Send player finishes" to also send every finish; it is off by default. Failed requests are retried once, then logged and reported to the panel's Sentry (when the operator set one up), with the match id and token.
 
 Requires plugin SDK 5.
 

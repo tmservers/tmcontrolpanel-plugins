@@ -17,6 +17,7 @@ export { isValidEcmApiKey };
 interface Config {
   apiKey?: string;
   isRecording?: boolean;
+  sendFinishes?: boolean;
   editors?: string[];
 }
 
@@ -25,7 +26,23 @@ function isEditor(config: Config, login: string): boolean {
   return editors.length === 0 || editors.includes(login);
 }
 
+// One below the sandbox limit (burst 10, 1 refill per second)
+const HTTP_BURST = 9;
+const HTTP_REFILL_MS = 1100;
+const RETRY_DELAY_MS = 2000;
+
+interface QueuedRequest {
+  endpoint: string;
+  body: unknown;
+  matchId: string;
+  authToken: string;
+  retried: boolean;
+}
+
 class ECMPlugin {
+  private readonly queue: QueuedRequest[] = [];
+  private tokens = HTTP_BURST;
+  private refilling = false;
   private roundOffset = 0;
   private readonly activeDrivers = new Set<string>();
   private readonly windows = new Map<string, Window>();
@@ -96,14 +113,40 @@ class ECMPlugin {
     return (this.ctx.live.roundNumber || 1) + this.roundOffset;
   }
 
-  // Fire and forget: a failing report is logged, it never interrupts the game
-  private async post(endpoint: string, body: unknown): Promise<void> {
+  // Queued so bursts stay under the sandbox http rate limit and none are lost
+  private post(endpoint: string, body: unknown): void {
     const [matchId, authToken] = (this.ctx.config().apiKey ?? "").split("_");
     if (!matchId || !authToken) {
       this.ctx.log.warn("Invalid eCircuitMania API key");
       return;
     }
+    // Capture the key now so a later key change can't redirect queued requests
+    this.queue.push({ endpoint, body, matchId, authToken, retried: false });
+    this.pump();
+  }
 
+  private pump() {
+    while (this.queue.length > 0 && this.tokens > 0) {
+      this.tokens--;
+      void this.send(this.queue.shift()!);
+    }
+    this.scheduleRefill();
+  }
+
+  // One timer at a time; ctx.setTimeout is the only timer available
+  private scheduleRefill() {
+    if (this.refilling || this.tokens >= HTTP_BURST) return;
+    this.refilling = true;
+    this.ctx.setTimeout(() => {
+      this.refilling = false;
+      this.tokens++;
+      this.pump();
+    }, HTTP_REFILL_MS);
+  }
+
+  // A failing report is retried and logged, it never interrupts the game
+  private async send(request: QueuedRequest): Promise<void> {
+    const { endpoint, body, matchId, authToken } = request;
     try {
       const response = await this.ctx.http.fetch(
         `${ECM_URL}/${endpoint}?matchId=${encodeURIComponent(matchId)}`,
@@ -122,25 +165,44 @@ class ECMPlugin {
           status: response.status,
           body: response.body.slice(0, 500),
         };
-        this.ctx.log.error("eCircuitMania request failed", details);
-        this.ctx.captureException(
+        this.onFailure(
+          request,
           new Error(`eCircuitMania ${endpoint} returned ${response.status}`),
           details,
         );
       }
     } catch (error) {
-      this.ctx.log.error("eCircuitMania request failed", {
-        endpoint,
-        error: String(error),
-      });
-      // The match id and token stay out of the report
-      this.ctx.captureException(error, { endpoint });
+      this.onFailure(request, error, { endpoint });
     }
   }
 
+  // One retry; the second failure goes to Sentry
+  private onFailure(
+    request: QueuedRequest,
+    error: unknown,
+    details: Record<string, unknown>,
+  ) {
+    const logged = { ...details, error: String(error) };
+    if (request.retried) {
+      this.ctx.log.error("eCircuitMania request failed twice", logged);
+      this.ctx.captureException(error, {
+        ...details,
+        matchId: request.matchId,
+        token: request.authToken,
+      });
+      return;
+    }
+    this.ctx.log.warn("eCircuitMania request failed, retrying", logged);
+    this.ctx.setTimeout(() => {
+      this.queue.unshift({ ...request, retried: true });
+      this.pump();
+    }, RETRY_DELAY_MS);
+  }
+
   private onFinish(waypoint: Waypoint) {
-    if (!this.isActive()) return;
-    void this.post("match-addRoundTime", {
+    // Off for installs whose saved config predates the option
+    if (!this.ctx.config().sendFinishes || !this.isActive()) return;
+    this.post("match-addRoundTime", {
       finishTime: waypoint.racetime,
       ubisoftUid: waypoint.accountid,
       roundNum: this.roundNum(),
@@ -167,7 +229,7 @@ class ECMPlugin {
       );
     }
 
-    void this.post("match-addRound", {
+    this.post("match-addRound", {
       players: rankPlayers(players, timeAttack).map((p) => ({
         finishTime: timeAttack ? p.bestracetime : p.prevracetime,
         ubisoftUid: p.accountid,

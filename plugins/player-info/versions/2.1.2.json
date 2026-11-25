@@ -1,0 +1,6 @@
+{
+  "url": "player-info-2.1.2.zip",
+  "sha256": "e67656e68089d87a709724a076d3df0738d044bfca2b4861870677ae13914712",
+  "publishedAt": "2026-11-25T19:36:36.918Z",
+  "changelog": "Players show up right away when they join, and their personal bests and records are requested together. Players who join during a map change no longer go missing."
+}
