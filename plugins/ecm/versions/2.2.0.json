@@ -1,0 +1,6 @@
+{
+  "url": "ecm-2.2.0.zip",
+  "sha256": "aea96876acab5fb6b8d43e9f196756d3a34c4425c69fabbb3d8e39d0abededd6",
+  "publishedAt": "2026-11-25T19:36:35.022Z",
+  "changelog": "New option \"Send player finishes\", off by default, also for existing installs: turn it on to keep sending every finish. Requests are sent at a pace that stays under the rate limit, a failed request is retried once, and the second failure is reported to the panel's Sentry with the match id and token."
+}

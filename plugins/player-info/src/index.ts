@@ -14,9 +14,24 @@ interface Config {
   playerInfos?: { login: string; device?: string; camera?: string }[];
 }
 
+// Players joining within this time share one request
+const JOIN_BATCH_MS = 1000;
+// The most accounts ctx.nadeo.personalBests takes at once
+const MAX_ACCOUNTS = 100;
+
+// The faster of two times, where 0 means no time
+function faster(a: number, b: number): number {
+  if (a === 0 || b === 0) return a || b;
+  return Math.min(a, b);
+}
+
 class PlayerInfoPlugin {
   private readonly widget: Widget;
   private cards: Record<string, PlayerCard> = {};
+  private readonly joined = new Set<string>();
+  private joinTimer = false;
+  // Goes up with every refresh, so late answers for the previous map are dropped
+  private refreshCount = 0;
 
   constructor(private readonly ctx: PluginContext<Config>) {
     this.widget = ctx.ui.widget({
@@ -67,26 +82,51 @@ class PlayerInfoPlugin {
     if (changed) this.render();
   }
 
-  private async onPlayerConnect(player: PlayerInfo) {
+  private onPlayerConnect(player: PlayerInfo) {
     if (this.cards[player.login]) return;
-    const mapUid = this.ctx.live.activeMapUid;
-    const [localRecords, personalBests] = mapUid
-      ? await Promise.all([
-          this.localRecords(mapUid, [player.login]),
-          this.personalBests(mapUid, [player.login]),
-        ])
-      : [new Map<string, number>(), new Map<string, number>()];
     this.cards[player.login] = {
       login: player.login,
       name: player.nickName,
-      localRecord: localRecords.get(player.login) ?? 0,
-      personalBest: personalBests.get(player.login) ?? 0,
+      localRecord: 0,
+      personalBest: 0,
       ...this.setupFor(player.login),
     };
+    this.render();
+
+    this.joined.add(player.login);
+    if (this.joinTimer) return;
+    this.joinTimer = true;
+    this.ctx.setTimeout(() => {
+      this.joinTimer = false;
+      const logins = [...this.joined];
+      this.joined.clear();
+      void this.loadRecords(this.ctx.live.activeMapUid, logins);
+    }, JOIN_BATCH_MS);
+  }
+
+  private async loadRecords(mapUid: string | null, logins: string[]) {
+    if (!mapUid) return;
+    const refreshCount = this.refreshCount;
+    const [localRecords, personalBests] = await Promise.all([
+      this.localRecords(mapUid, logins),
+      this.personalBests(mapUid, logins),
+    ]);
+    if (this.refreshCount !== refreshCount) return;
+    for (const login of logins) {
+      const card = this.cards[login];
+      if (!card) continue;
+      // A better time may have been driven while the requests were running
+      card.localRecord = faster(card.localRecord, localRecords.get(login) ?? 0);
+      card.personalBest = faster(
+        card.personalBest,
+        personalBests.get(login) ?? 0,
+      );
+    }
     this.render();
   }
 
   private async refreshAll() {
+    const refreshCount = ++this.refreshCount;
     const players = this.ctx.live.activePlayers.filter(
       (player) => !player.login.includes("fakeplayer"),
     );
@@ -101,6 +141,7 @@ class PlayerInfoPlugin {
       this.localRecords(map.UId, logins),
       this.personalBests(map.UId, logins),
     ]);
+    if (this.refreshCount !== refreshCount) return;
     this.cards = {};
     for (const player of players) {
       this.cards[player.login] = {
@@ -112,6 +153,11 @@ class PlayerInfoPlugin {
       };
     }
     this.render();
+
+    // Players who joined while the requests were running
+    for (const player of this.ctx.live.activePlayers) {
+      if (!player.login.includes("fakeplayer")) this.onPlayerConnect(player);
+    }
   }
 
   private async localRecords(
@@ -138,23 +184,24 @@ class PlayerInfoPlugin {
     const accounts = logins
       .map((login) => [login, loginToAccountId(login)] as const)
       .filter((entry): entry is readonly [string, string] => entry[1] !== null);
-    if (accounts.length === 0) return new Map();
-    try {
-      const byAccount = await this.ctx.nadeo.personalBests(
-        mapUid,
-        accounts.map(([, accountId]) => accountId),
-      );
-      return new Map(
-        accounts
-          .filter(([, accountId]) => accountId in byAccount)
-          .map(([login, accountId]) => [login, byAccount[accountId]]),
-      );
-    } catch (error) {
-      this.ctx.log.error("Failed to fetch personal bests", {
-        error: String(error),
-      });
-      return new Map();
+    const bests = new Map<string, number>();
+    for (let i = 0; i < accounts.length; i += MAX_ACCOUNTS) {
+      const chunk = accounts.slice(i, i + MAX_ACCOUNTS);
+      try {
+        const byAccount = await this.ctx.nadeo.personalBests(
+          mapUid,
+          chunk.map(([, accountId]) => accountId),
+        );
+        for (const [login, accountId] of chunk) {
+          if (accountId in byAccount) bests.set(login, byAccount[accountId]);
+        }
+      } catch (error) {
+        this.ctx.log.error("Failed to fetch personal bests", {
+          error: String(error),
+        });
+      }
     }
+    return bests;
   }
 
   private render() {
