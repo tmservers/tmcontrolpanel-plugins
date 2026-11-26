@@ -42,8 +42,8 @@ class LiveRankingPlugin {
     await this.reset();
   }
 
-  private teamColors(teamId: number): TeamColors {
-    return getTeamColors(this.ctx.live.liveInfo.teams?.[teamId]?.name);
+  private teamColors(teamId: number, liveInfo: LiveInfo): TeamColors {
+    return getTeamColors(liveInfo.teams?.[teamId]?.name);
   }
 
   private isSpectating(player: PlayerInfo): boolean {
@@ -59,12 +59,13 @@ class LiveRankingPlugin {
       this.rankings.some((r) => r.login === player.login)
     )
       return;
+    const { liveInfo } = this.ctx.live;
     this.rankings.push({
       login: player.login,
       name: player.nickName,
       rank: 0,
       points: 0,
-      team: this.teamColors(player.teamId),
+      team: this.teamColors(player.teamId, liveInfo),
     });
     this.render();
   }
@@ -76,6 +77,7 @@ class LiveRankingPlugin {
   }
 
   private onPlayerInfo(player: PlayerInfo) {
+    const { liveInfo } = this.ctx.live;
     const ranking = this.rankings.find((r) => r.login === player.login);
     if (this.isSpectating(player)) {
       if (!ranking || ranking.points > 0) return;
@@ -86,11 +88,11 @@ class LiveRankingPlugin {
         name: player.nickName,
         rank: 0,
         points: 0,
-        team: this.teamColors(player.teamId),
+        team: this.teamColors(player.teamId, liveInfo),
       });
     } else {
       ranking.name = player.nickName;
-      ranking.team = this.teamColors(player.teamId);
+      ranking.team = this.teamColors(player.teamId, liveInfo);
     }
     this.render();
   }

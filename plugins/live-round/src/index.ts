@@ -58,6 +58,10 @@ class LiveRoundPlugin {
   // Goes up with every map, so late answers for the previous one are dropped
   private mapCount = 0;
 
+  // Snapshot of the live state; every ctx.live.liveInfo read serializes all players, so refresh it
+  // only from events that carry it
+  private info: LiveInfo = { type: "", isWarmUp: false } as LiveInfo;
+
   private readonly render: () => void;
   private lastSent = "";
 
@@ -81,6 +85,9 @@ class LiveRoundPlugin {
     ctx.on("finish", (waypoint) => this.onFinish(waypoint));
     ctx.on("giveUp", (event) => this.onGiveUp(event));
     ctx.on("updatedSettings", (info) => this.onUpdatedSettings(info));
+    ctx.on("warmUpStart", (info) => (this.info = info));
+    ctx.on("warmUpEnd", (info) => (this.info = info));
+    ctx.on("warmUpStartRound", (info) => (this.info = info));
     ctx.on("scores", (scores) => this.onScores(scores));
     ctx.on("playerUpdated", (round) => this.onPlayerUpdated(round));
   }
@@ -95,7 +102,7 @@ class LiveRoundPlugin {
     login: string,
     name: string,
     teamId: number,
-    teams: LiveInfo["teams"] = this.ctx.live.liveInfo.teams,
+    teams: LiveInfo["teams"] = this.info.teams,
   ): RoundEntry {
     return {
       login,
@@ -214,13 +221,14 @@ class LiveRoundPlugin {
   }
 
   private onUpdatedSettings(info: LiveInfo) {
+    this.info = info;
     this.pointsLimit = info.pointsLimit || -1;
     this.pointsRepartition = info.pointsRepartition || [];
     this.render();
   }
 
   private onCheckpoint(waypoint: Waypoint) {
-    if (this.ctx.live.liveInfo.isWarmUp) return;
+    if (this.info.isWarmUp) return;
     const round = this.rounds.find((r) => r.login === waypoint.login);
     if (!round) return;
 
@@ -230,7 +238,7 @@ class LiveRoundPlugin {
   }
 
   private onFinish(waypoint: Waypoint) {
-    if (this.ctx.live.liveInfo.isWarmUp || waypoint.racetime === 0) return;
+    if (this.info.isWarmUp || waypoint.racetime === 0) return;
 
     let isFastest = false;
     if (
@@ -274,7 +282,7 @@ class LiveRoundPlugin {
   }
 
   private onGiveUp(event: WaypointEvent) {
-    if (this.ctx.live.liveInfo.isWarmUp) return;
+    if (this.info.isWarmUp) return;
     const round = this.rounds.find((r) => r.login === event.login);
     if (!round) return;
     round.time = -1;
@@ -287,7 +295,7 @@ class LiveRoundPlugin {
       scores.section !== "EndRound"
     )
       return;
-    const { liveInfo } = this.ctx.live;
+    const liveInfo = this.info;
 
     for (const player of scores.players) {
       const round = this.rounds.find((r) => r.login === player.login);
@@ -342,7 +350,8 @@ class LiveRoundPlugin {
   }
 
   private async reset() {
-    const { liveInfo } = this.ctx.live;
+    const liveInfo = this.ctx.live.liveInfo;
+    this.info = liveInfo;
     this.pointsLimit = liveInfo.pointsLimit || -1;
     this.pointsRepartition = liveInfo.pointsRepartition || [];
     this.finishes = [];
@@ -382,6 +391,13 @@ class LiveRoundPlugin {
     this.rounds = sortRoundEntries(this.rounds);
     this.rounds.forEach((round, index) => (round.rank = index + 1));
 
+    const mode = this.info.type;
+    const isReverseCup = live.isReverseCup;
+    const reverseRepartition = isReverseCup
+      ? live.reverseCupGetPointsRepartition(
+          this.rounds.filter((r) => r.points > -2000).length,
+        )
+      : [];
     const ranks = new Map(this.rounds.map((r) => [r.login, r.rank]));
     const rankOf = (login: string) => ranks.get(login);
     this.finishes.sort(
@@ -395,11 +411,10 @@ class LiveRoundPlugin {
       }
       if (!rankOf(finish.login)) return;
 
-      if (live.isReverseCup) {
-        const playerCount = this.rounds.filter((r) => r.points > -2000).length;
-        const repartition = live.reverseCupGetPointsRepartition(playerCount);
+      if (isReverseCup) {
         finish.points =
-          -repartition[Math.min(index, repartition.length - 1)] || 0;
+          -reverseRepartition[Math.min(index, reverseRepartition.length - 1)] ||
+          0;
       } else {
         const position = Math.min(index, this.pointsRepartition.length - 1);
         finish.points = this.pointsRepartition[position] || 0;
@@ -441,17 +456,17 @@ class LiveRoundPlugin {
         return `${minutes > 0 ? `${minutes}:${String(seconds % 60).padStart(2, "0")}` : String(seconds % 60).padStart(2, "0")}.${String(millis).padStart(3, "0")}`;
       };
       let pointsText = String(round.points);
-      if (live.liveInfo.type === "cup" && this.pointsLimit > 0) {
+      if (mode === "cup" && this.pointsLimit > 0) {
         if (round.points > this.pointsLimit) pointsText = "$2C2W";
         else if (round.points === this.pointsLimit) pointsText = "$D22F";
       } else if (
-        live.liveInfo.type === "rounds" &&
+        mode === "rounds" &&
         this.pointsLimit > 0 &&
         round.points >= this.pointsLimit &&
         round.team.mainColor === ""
       )
         pointsText = "$2C2W";
-      else if (live.liveInfo.type === "reversecup") {
+      else if (mode === "reversecup") {
         if (round.points > -2000 && round.points <= -1000)
           pointsText = "$D22LC";
         else if (round.points <= -2000) pointsText = "$D22E";
