@@ -1,0 +1,6 @@
+{
+  "url": "live-round-2.1.11.zip",
+  "sha256": "73141196ae02ddee07223abcef4120e4f72de79af384df08067b74ae67175ad5",
+  "publishedAt": "2026-11-26T18:56:45.528Z",
+  "changelog": "Uses far less CPU during busy rounds, so large lobbies no longer get the widget turned off."
+}

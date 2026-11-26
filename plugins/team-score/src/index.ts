@@ -1,6 +1,7 @@
 import {
   definePlugin,
   throttle,
+  type LiveInfo,
   type PluginContext,
   type Scores,
   type Waypoint,
@@ -198,22 +199,22 @@ class TeamScorePlugin {
     this.render();
   }
 
-  private teamOf(login: string): number {
-    const live = this.ctx.live;
+  private teamOf(login: string, liveInfo: LiveInfo): number {
     return (
-      live.findActivePlayer(login)?.teamId ??
-      live.liveInfo.players[login]?.team ??
+      this.ctx.live.findActivePlayer(login)?.teamId ??
+      liveInfo.players[login]?.team ??
       -1
     );
   }
 
   // Every checkpoint re-projects the round, so the leader follows the race live
   private onWaypoint(waypoint: Waypoint) {
-    if (this.ctx.live.liveInfo.isWarmUp || waypoint.racetime === 0) return;
+    const { liveInfo } = this.ctx.live;
+    if (liveInfo.isWarmUp || waypoint.racetime === 0) return;
     const run = this.runs.get(waypoint.login);
     if (run && run.finishedAt >= 0) return;
     this.runs.set(waypoint.login, {
-      team: run?.team ?? this.teamOf(waypoint.login),
+      team: run?.team ?? this.teamOf(waypoint.login, liveInfo),
       checkpoints: waypoint.checkpointinrace + 1,
       time: waypoint.racetime,
       finishedAt: waypoint.isendrace ? this.finishCount++ : -1,
@@ -275,8 +276,9 @@ class TeamScorePlugin {
         points: this.points[side],
       };
     };
-    const pointsLimit = live.liveInfo.pointsLimit ?? 0;
-    const status = live.liveInfo.isWarmUp
+    const { liveInfo } = live;
+    const pointsLimit = liveInfo.pointsLimit ?? 0;
+    const status = liveInfo.isWarmUp
       ? "Warm up"
       : [
           live.roundNumber > 0 ? `Round ${live.roundNumber}` : "",
@@ -290,7 +292,7 @@ class TeamScorePlugin {
       pointsLimit: Math.max(pointsLimit, 0),
       centerLogo: this.ctx.config().centerLogo?.trim() ?? "",
       status,
-      warmUp: live.liveInfo.isWarmUp,
+      warmUp: liveInfo.isWarmUp,
     };
   }
 

@@ -1,0 +1,6 @@
+{
+  "url": "live-ranking-2.1.2.zip",
+  "sha256": "8e79242fbcb9f2286fa6e9159d856cf75d71e4650dc5d2ff15719d22a510969c",
+  "publishedAt": "2026-11-26T18:56:44.563Z",
+  "changelog": "Uses less CPU when players join or change team."
+}
